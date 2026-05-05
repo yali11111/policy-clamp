@@ -1,3 +1,84 @@
+
+clamp-acm-ci/
+│
+├── .github/
+│   └── workflows/
+│       ├── build.yml
+│       ├── deploy-onap.yml
+│       └── smoke-test.yml
+│
+├── monitoring-service/                     # 📡 Kafka Producer (metrics)
+│   └── src/main/java/com/clamp/acm/monitoring/
+│       ├── MonitoringProducer.java
+│       ├── MonitoringScheduler.java
+│       └── config/KafkaConfig.java
+│
+├── policy-engine-service/                  # 🧠 Kafka Streams (decision engine)
+│   └── src/main/java/com/clamp/acm/policy/
+│       ├── PolicyTopology.java
+│       ├── PolicyStreamProcessor.java
+│       └── config/KafkaStreamsConfig.java
+│
+├── automation-controller-service/          # ⚙️ Kafka Consumer (executor)
+│   └── src/main/java/com/clamp/acm/automation/
+│       ├── AutomationConsumer.java
+│       ├── AutomationHandler.java
+│       ├── service/AutomationService.java
+│       ├── controller/AutomationControllerRest.java   # optional REST fallback
+│       └── model/
+│           ├── AutomationRequest.java
+│           └── AutomationResponse.java
+│
+├── shared-events/                          # 📦 (optional but recommended)
+│   ├── MetricsEvent.java
+│   ├── PolicyDecisionEvent.java
+│   └── EventSchemas.md
+│
+├── kafka-config/                           # ⚙️ Infra configs
+│   ├── topics.yml
+│   ├── docker-compose-kafka.yml
+│   └── application-kafka.yml
+│
+├── tosca/
+│   ├── policy-types/
+│   │   └── policy-type.yaml
+│   │
+│   ├── node-types/
+│   │   ├── monitoring-node.yaml
+│   │   ├── policy-engine-node.yaml
+│   │   └── automation-controller-node.yaml
+│   │
+│   └── compositions/
+│       └── acm-composition.yaml
+│
+├── xtesting/
+│   ├── testcases.yaml
+│   ├── smoke/
+│   │   └── test_acm_smoke.py
+│   └── requirements.txt
+│
+├── scripts/
+│   ├── deploy_onap.sh
+│   ├── start_kafka.sh
+│   ├── start_monitoring.sh
+│   ├── start_policy_engine.sh
+│   ├── start_automation_controller.sh
+│   └── cleanup.sh
+│
+├── docker/
+│   ├── Dockerfile.monitoring
+│   ├── Dockerfile.policy-engine
+│   ├── Dockerfile.automation
+│   └── docker-compose.yml
+│
+├── helm/                                  # ☸️ optional Kubernetes deployment
+│   ├── monitoring/
+│   ├── policy-engine/
+│   └── automation-controller/
+│
+└── README.md
+
+
 clamp-acm-ci/
 │
 ├── .github/
