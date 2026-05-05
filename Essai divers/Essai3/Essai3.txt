@@ -1,0 +1,85 @@
+ran-congestion-control-platform/
+│
+├── README.md
+├── docker-compose.yml
+├── pom.xml
+│
+├── infrastructure/
+│   ├── kafka/
+│   │   └── kafka-compose.yml
+│   ├── prometheus/
+│   │   └── prometheus.yml
+│   ├── grafana/
+│   │   └── dashboards/
+│   ├── loki/
+│   └── jaeger/
+│
+├── ran-common/
+│   └── src/main/java/org/onap/policy/ran/common/
+│       ├── RanKpi.java
+│       ├── CongestionEvent.java
+│       └── ActionEvent.java
+│
+├── ran-kpi-service/
+│   └── src/main/java/org/example/ran/kpi/
+│       ├── producer/
+│       │   └── RanKpiProducer.java
+│       ├── simulator/
+│       │   └── KpiSimulator.java
+│       └── config/
+│           └── KafkaConfig.java
+│
+├── ran-predictor-service/
+│   └── src/main/java/org/example/ran/predictor/
+│       ├── consumer/
+│       │   └── KpiConsumer.java
+│       ├── service/
+│       │   └── CongestionPredictorService.java
+│       └── producer/
+│           └── CongestionProducer.java
+│
+├── ran-control-service/
+│   └── src/main/java/org/example/ran/control/
+│       ├── consumer/
+│       │   └── CongestionConsumer.java
+│       ├── policy/
+│       │   └── ControlLoopEngine.java
+│       └── producer/
+│           └── ActionProducer.java
+│
+├── ran-clamp-participant-service/
+│   └── src/main/java/org/onap/policy/ran/participant/
+│       ├── main/handler/
+│       │   └── RanAutomationCompositionElementHandler.java
+│       ├── service/
+│       │   └── RanActionService.java
+│       └── config/
+│           └── ParticipantConfig.java
+│
+├── ran-participants/
+│   ├── traffic-steering-participant/
+│   │   └── TrafficSteeringParticipant.java
+│   │
+│   ├── scaling-participant/
+│   │   └── ScalingParticipant.java
+│   │
+│   └── network-config-participant/
+│       └── NetworkConfigParticipant.java
+│
+├── ran-observability-service/
+│   └── src/main/java/org/example/ran/observability/
+│       ├── consumer/
+│       │   └── KafkaObservabilityConsumer.java
+│       ├── metrics/
+│       │   └── MetricsPublisher.java
+│       └── tracing/
+│           └── TraceConfig.java
+│
+├── shared-kafka-config/
+│   └── KafkaBaseConfig.java
+│
+└── docs/
+    ├── architecture.md
+    ├── kafka-topics.md
+    ├── clamp-participant-flow.md
+    └── ran-o-ran-mapping.md
