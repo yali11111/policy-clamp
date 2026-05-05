@@ -1,3 +1,172 @@
+massive-mimo-clamp/
+│
+├── README.md
+│
+├── docs/
+│   ├── architecture.md
+│   ├── control-loop-flow.md
+│   ├── kpi-definition.md
+│   ├── deployment-guide.md
+│   ├── observability.md
+│   └── lifecycle-states.md
+│
+│
+├── clamp/
+│   │
+│   ├── tosca/
+│   │   ├── automation-composition.yaml
+│   │   ├── beam-optimization-ac.yaml
+│   │   ├── parameters.yaml
+│   │   │
+│   │   └── types/
+│   │       └── onap-acm-types.yaml
+│   │
+│   ├── policies/
+│   │   ├── trigger-policy.json
+│   │   ├── guard-policy.json
+│   │   └── action-policy.json
+│   │
+│   └── scripts/
+│       ├── create-composition.sh
+│       ├── prime-composition.sh
+│       └── deploy-composition.sh
+│
+│
+├── analytics/
+│   │
+│   ├── beam-optimizer/                     # FastAPI ML engine
+│   │   ├── app.py
+│   │   ├── inference.py
+│   │   ├── train.py
+│   │   ├── model.pkl
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   └── ml/
+│       ├── train.py
+│       └── model.pkl
+│
+│
+├── orchestration/
+│   │
+│   ├── java-orchestrator/
+│   │   ├── src/main/java/
+│   │   │   └── com/example/orchestrator/
+│   │   │       ├── Application.java
+│   │   │       ├── KpiController.java
+│   │   │       ├── kafka/
+│   │   │       │   ├── KpiConsumer.java
+│   │   │       │   ├── ResultConsumer.java
+│   │   │       │   └── EventPublisher.java
+│   │   │       ├── clients/
+│   │   │       │   └── PythonMlClient.java
+│   │   │       └── util/
+│   │   │           └── AcmThreadFactory.java
+│   │   │
+│   │   ├── pom.xml
+│   │   ├── Dockerfile
+│   │   └── application.yml
+│   │
+│   └── clamping-runtime/                  # CLAMP ACM runtime logic (CORE)
+│       └── src/main/java/org/onap/policy/clamp/acm/runtime/
+│           ├── participants/
+│           │   └── AcmParticipantProvider.java
+│           │
+│           ├── instantiation/
+│           │   └── AutomationCompositionInstantiationProvider.java
+│           │
+│           ├── supervision/
+│           │   ├── SupervisionAcHandler.java
+│           │   └── SupervisionParticipantHandler.java
+│           │
+│           └── state/
+│               ├── AcInstanceStateResolver.java
+│               └── AcmStageUtils.java
+│
+│
+├── dcae/
+│   ├── kpi-simulator/
+│   │   ├── producer.py
+│   │   └── sample-events.json
+│   │
+│   └── ves-config/
+│       └── ves-collector.yaml
+│
+│
+├── ran-control/
+│   │
+│   ├── ric-xapp/
+│   │   ├── xapp.py
+│   │   └── config.yaml
+│   │
+│   ├── a1-policy/
+│   │   └── beam-update-policy.json
+│   │
+│   └── vendor-adapter/
+│       └── ran-api-mapping.yaml
+│
+│
+├── kafka/
+│   ├── topics.md
+│   ├── schemas/
+│   │   ├── kpi-event.json
+│   │   ├── ml-result.json
+│   │   └── a1-command.json
+│   └── docker-compose-kafka.yaml
+│
+│
+├── k8s/
+│   │
+│   ├── helm/
+│   │   └── hybrid-pipeline/
+│   │       ├── Chart.yaml
+│   │       ├── values.yaml
+│   │       └── templates/
+│   │           ├── java.yaml
+│   │           ├── python.yaml
+│   │           ├── kafka.yaml
+│   │           ├── ric.yaml
+│   │           ├── prometheus.yaml
+│   │           └── grafana.yaml
+│   │
+│   └── raw/
+│       ├── namespace.yaml
+│       ├── ingress.yaml
+│       └── configmaps.yaml
+│
+│
+├── observability/
+│   │
+│   ├── prometheus/
+│   │   ├── prometheus.yml
+│   │   └── rules.yaml
+│   │
+│   ├── grafana/
+│   │   ├── dashboards/
+│   │   │   ├── control-loop.json
+│   │   │   └── ml-performance.json
+│   │   └── datasource.yaml
+│   │
+│   └── logs/
+│       └── logback.xml
+│
+│
+├── tools/
+│   ├── send-kpi.sh
+│   ├── check-loop-status.sh
+│   ├── logs.sh
+│   ├── deploy-all.sh
+│   └── restart-loop.sh
+│
+│
+└── model-layer/
+    │
+    └── tosca-models/
+        ├── ToscaCapabilityAssignment.java
+        ├── AutomationComposition.java
+        ├── AutomationCompositionElement.java
+        └── ToscaConceptIdentifier.java
+
 /*massive-mimo-clamp/
 *│
 *├── README.md
