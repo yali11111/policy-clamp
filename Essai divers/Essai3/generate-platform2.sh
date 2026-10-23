@@ -2727,3 +2727,484 @@ EOF
 
 echo "PARTIE 7B/8 — 2/3B générée : configuration, tests et documentation."
 echo "Aucune compilation ni activation de service exécutée."
+
+# ============================================================
+# RAN Congestion Control Platform
+# Partie 7B/8 — 2/3B
+# Scaling Participant
+#
+# Génération de fichiers uniquement.
+# Aucun service n'est démarré.
+# ============================================================
+
+BASE="scaling-participant"
+PKG="$BASE/src/main/java/org/example/ran/scaling"
+TEST="$BASE/src/test/java/org/example/ran/scaling"
+
+mkdir -p \
+  "$PKG/participant" \
+  "$PKG/config" \
+  "$TEST/participant" \
+  "$BASE/src/main/resources"
+
+# ------------------------------------------------------------
+# 1. ScalingParticipant.java
+# ------------------------------------------------------------
+
+cat > "$PKG/participant/ScalingParticipant.java" <<'EOF'
+package org.example.ran.scaling.participant;
+
+import org.example.ran.action.participant.ActionParticipant;
+import org.example.ran.action.service.ActionExecutionResult;
+import org.onap.policy.ran.common.ActionEvent;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Participant de mise à l'échelle simulée.
+ *
+ * Aucune API Kubernetes ou infrastructure réelle n'est appelée.
+ */
+@Component
+public class ScalingParticipant implements ActionParticipant {
+
+    private static final Set<ActionEvent.ActionType> SUPPORTED =
+            Set.of(
+                    ActionEvent.ActionType.SCALE_OUT,
+                    ActionEvent.ActionType.SCALE_IN
+            );
+
+    private final boolean simulationMode;
+    private final int minReplicas;
+    private final int maxReplicas;
+
+    public ScalingParticipant(
+            @Value("${ran.scaling.simulation-mode:true}")
+            boolean simulationMode,
+            @Value("${ran.scaling.min-replicas:1}")
+            int minReplicas,
+            @Value("${ran.scaling.max-replicas:10}")
+            int maxReplicas) {
+
+        if (minReplicas < 1 || maxReplicas < minReplicas) {
+            throw new IllegalArgumentException(
+                    "Invalid scaling replica limits");
+        }
+
+        this.simulationMode = simulationMode;
+        this.minReplicas = minReplicas;
+        this.maxReplicas = maxReplicas;
+    }
+
+    @Override
+    public boolean supports(ActionEvent action) {
+        return action != null
+                && SUPPORTED.contains(action.actionType());
+    }
+
+    @Override
+    public ActionExecutionResult execute(ActionEvent action) {
+        if (!supports(action)) {
+            return ActionExecutionResult.rejected(
+                    action == null ? "unknown" : action.actionId(),
+                    "Type d'action incompatible avec ScalingParticipant"
+            );
+        }
+
+        if (!simulationMode) {
+            return ActionExecutionResult.rejected(
+                    action.actionId(),
+                    "Exécution réelle indisponible : aucun adaptateur de scaling configuré"
+            );
+        }
+
+        Map<String, String> parameters = action.parameters();
+
+        String direction = action.actionType()
+                == ActionEvent.ActionType.SCALE_OUT ? "out" : "in";
+
+        String configuredDirection = parameters.get("direction");
+
+        if (configuredDirection != null
+                && !configuredDirection.equalsIgnoreCase(direction)) {
+            return ActionExecutionResult.rejected(
+                    action.actionId(),
+                    "La direction demandée ne correspond pas au type d'action"
+            );
+        }
+
+        int requestedReplicas;
+
+        try {
+            requestedReplicas = Integer.parseInt(
+                    parameters.getOrDefault("requestedReplicas", "1")
+            );
+        } catch (NumberFormatException exception) {
+            return ActionExecutionResult.rejected(
+                    action.actionId(),
+                    "requestedReplicas doit être un entier"
+            );
+        }
+
+        if (requestedReplicas < minReplicas
+                || requestedReplicas > maxReplicas) {
+            return ActionExecutionResult.rejected(
+                    action.actionId(),
+                    "Nombre de réplicas hors des limites autorisées"
+            );
+        }
+
+        String component = parameters.getOrDefault(
+                "component", "ran-capacity");
+
+        if (component.isBlank()) {
+            return ActionExecutionResult.rejected(
+                    action.actionId(),
+                    "Le composant cible ne peut pas être vide"
+            );
+        }
+
+        return ActionExecutionResult.success(
+                action.actionId(),
+                "Mise à l'échelle simulée : direction="
+                        + direction
+                        + ", component="
+                        + component
+                        + ", requestedReplicas="
+                        + requestedReplicas
+                        + ", limites=["
+                        + minReplicas
+                        + ","
+                        + maxReplicas
+                        + "] ; aucune infrastructure modifiée",
+                true
+        );
+    }
+}
+EOF
+
+# ------------------------------------------------------------
+# 2. ScalingParticipantApplication.java
+# ------------------------------------------------------------
+
+cat > "$PKG/ScalingParticipantApplication.java" <<'EOF'
+package org.example.ran.scaling;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication(
+        scanBasePackages = {
+                "org.example.ran.scaling"
+        }
+)
+public class ScalingParticipantApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(
+                ScalingParticipantApplication.class,
+                args
+        );
+    }
+}
+EOF
+
+# ------------------------------------------------------------
+# 3. application.yml
+# ------------------------------------------------------------
+
+cat > "$BASE/src/main/resources/application.yml" <<'EOF'
+spring:
+  application:
+    name: scaling-participant
+
+server:
+  port: ${SERVER_PORT:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ran:
+  scaling:
+    simulation-mode: ${RAN_SCALING_SIMULATION_MODE:true}
+    min-replicas: ${RAN_SCALING_MIN_REPLICAS:1}
+    max-replicas: ${RAN_SCALING_MAX_REPLICAS:10}
+
+logging:
+  level:
+    root: INFO
+    org.example.ran.scaling: INFO
+EOF
+
+# ------------------------------------------------------------
+# 4. pom.xml
+# ------------------------------------------------------------
+
+cat > "$BASE/pom.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.example.ran</groupId>
+        <artifactId>ran-congestion-control-platform</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>scaling-participant</artifactId>
+    <name>Scaling Participant</name>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.example.ran</groupId>
+            <artifactId>ran-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.example.ran</groupId>
+            <artifactId>ran-action-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
+EOF
+
+# ------------------------------------------------------------
+# 5. ScalingParticipantTest.java
+# ------------------------------------------------------------
+
+cat > "$TEST/participant/ScalingParticipantTest.java" <<'EOF'
+package org.example.ran.scaling.participant;
+
+import org.example.ran.action.service.ActionExecutionResult;
+import org.onap.policy.ran.common.ActionEvent;
+import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class ScalingParticipantTest {
+
+    private ActionEvent action(
+            ActionEvent.ActionType type,
+            Map<String, String> parameters) {
+
+        Instant now = Instant.parse("2026-01-01T12:00:00Z");
+
+        return new ActionEvent(
+                "action-scale-001",
+                "correlation-001",
+                "congestion-001",
+                now,
+                "gnb-001",
+                "cell-001",
+                "default",
+                type,
+                ActionEvent.ActionStatus.REQUESTED,
+                ActionEvent.ActionTarget.SCALING_PARTICIPANT,
+                parameters,
+                "test scaling",
+                "unit-test",
+                now.plusSeconds(60)
+        );
+    }
+
+    @Test
+    void supportsScaleOutAndScaleIn() {
+        ScalingParticipant participant =
+                new ScalingParticipant(true, 1, 10);
+
+        assertTrue(participant.supports(action(
+                ActionEvent.ActionType.SCALE_OUT,
+                Map.of()
+        )));
+
+        assertTrue(participant.supports(action(
+                ActionEvent.ActionType.SCALE_IN,
+                Map.of()
+        )));
+
+        assertFalse(participant.supports(action(
+                ActionEvent.ActionType.NO_OP,
+                Map.of()
+        )));
+    }
+
+    @Test
+    void simulatesScaleOutWithinConfiguredLimits() {
+        ScalingParticipant participant =
+                new ScalingParticipant(true, 1, 10);
+
+        ActionExecutionResult result = participant.execute(action(
+                ActionEvent.ActionType.SCALE_OUT,
+                Map.of(
+                        "component", "ran-capacity",
+                        "direction", "out",
+                        "requestedReplicas", "3"
+                )
+        ));
+
+        assertEquals("SUCCEEDED", result.status());
+        assertTrue(result.simulated());
+        assertTrue(result.message().contains("requestedReplicas=3"));
+    }
+
+    @Test
+    void rejectsReplicaCountOutsideLimits() {
+        ScalingParticipant participant =
+                new ScalingParticipant(true, 1, 5);
+
+        ActionExecutionResult result = participant.execute(action(
+                ActionEvent.ActionType.SCALE_OUT,
+                Map.of("requestedReplicas", "8")
+        ));
+
+        assertEquals("REJECTED", result.status());
+    }
+
+    @Test
+    void rejectsInvalidReplicaCount() {
+        ScalingParticipant participant =
+                new ScalingParticipant(true, 1, 10);
+
+        ActionExecutionResult result = participant.execute(action(
+                ActionEvent.ActionType.SCALE_OUT,
+                Map.of("requestedReplicas", "abc")
+        ));
+
+        assertEquals("REJECTED", result.status());
+    }
+
+    @Test
+    void rejectsRealExecutionWithoutAdapter() {
+        ScalingParticipant participant =
+                new ScalingParticipant(false, 1, 10);
+
+        ActionExecutionResult result = participant.execute(action(
+                ActionEvent.ActionType.SCALE_OUT,
+                Map.of("requestedReplicas", "2")
+        ));
+
+        assertEquals("REJECTED", result.status());
+        assertFalse(result.message().isBlank());
+    }
+
+    @Test
+    void rejectsMismatchedDirection() {
+        ScalingParticipant participant =
+                new ScalingParticipant(true, 1, 10);
+
+        ActionExecutionResult result = participant.execute(action(
+                ActionEvent.ActionType.SCALE_OUT,
+                Map.of(
+                        "direction", "in",
+                        "requestedReplicas", "2"
+                )
+        ));
+
+        assertEquals("REJECTED", result.status());
+    }
+
+    @Test
+    void rejectsInvalidReplicaLimits() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new ScalingParticipant(true, 5, 2)
+        );
+    }
+}
+EOF
+
+# ------------------------------------------------------------
+# 6. README.md
+# ------------------------------------------------------------
+
+cat > "$BASE/README.md" <<'EOF'
+# Scaling Participant
+
+## Responsabilités
+
+Ce module fournit un participant spécialisé dans les demandes
+de mise à l'échelle `SCALE_OUT` et `SCALE_IN`.
+
+## Fonctionnement
+
+- Vérification du type d'action.
+- Vérification de la direction demandée.
+- Validation du nombre de réplicas.
+- Application de limites configurables.
+- Simulation du résultat sans modifier une infrastructure.
+
+## Configuration
+
+| Variable | Valeur par défaut |
+|---|---|
+| SERVER_PORT | 8085 |
+| RAN_SCALING_SIMULATION_MODE | true |
+| RAN_SCALING_MIN_REPLICAS | 1 |
+| RAN_SCALING_MAX_REPLICAS | 10 |
+
+## Sécurité
+
+Le mode simulation est activé par défaut.
+
+Désactiver le mode simulation ne déclenche aucune mise à l'échelle
+réelle : en l'absence d'un adaptateur de production, la demande
+est rejetée.
+
+Une future intégration devra vérifier les autorisations, la cible,
+les quotas, la capacité disponible et les contraintes de disponibilité.
+
+## Intégration
+
+Le participant implémente l'interface `ActionParticipant` du module
+`ran-action-service` et utilise le contrat `ActionEvent` de `ran-common`.
+
+Il doit être enregistré dans le service d'exécution pour participer
+au routage des actions. Le lancement autonome de ce module ne suffit
+pas à le connecter automatiquement au consommateur Kafka existant.
+EOF
+
+echo "PARTIE 7B/8 — 2/3B générée : scaling-participant."
+echo "Aucune compilation ou activation de service exécutée."
