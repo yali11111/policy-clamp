@@ -1,0 +1,167 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 245px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #101010;
+  color: #eeeeee;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 24px 14px;
+  background: #151515;
+  border-right: 1px solid #414141;
+}
+
+.brand {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  color: #eeeeee;
+  text-decoration: none;
+}
+
+.brand strong {
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.brand span {
+  color: #aaaaaa;
+  font-size: 11px;
+}
+
+.nav-heading {
+  padding: 0 10px;
+  color: #999999;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+}
+
+nav {
+  display: grid;
+  gap: 5px;
+}
+
+.nav-item {
+  padding: 12px 10px;
+  border-radius: 4px;
+  color: #cccccc;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.nav-item:hover {
+  background: #292929;
+}
+
+.nav-item.active {
+  background: #333333;
+  color: #ffffff;
+  border-left: 3px solid #bbbbbb;
+}
+
+.sidebar-footer {
+  display: grid;
+  gap: 5px;
+  margin-top: auto;
+  padding: 16px 10px 0;
+  border-top: 1px solid #414141;
+  color: #aaaaaa;
+  font-size: 11px;
+}
+
+.main-panel {
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 92px;
+  padding: 20px 28px;
+  background: #181818;
+  border-bottom: 1px solid #414141;
+}
+
+.breadcrumb {
+  margin: 0;
+  color: #999999;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+}
+
+.topbar h1 {
+  margin: 7px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.topbar-info {
+  display: grid;
+  gap: 5px;
+  color: #bbbbbb;
+  font-size: 11px;
+  text-align: right;
+}
+
+.environment-label {
+  color: #eeeeee;
+  letter-spacing: 1px;
+}
+
+.page-content {
+  padding: 28px;
+  min-width: 0;
+}
+
+@media (max-width: 850px) {
+  .app-shell {
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+
+  .topbar {
+    padding: 18px;
+  }
+
+  .page-content {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sidebar-footer {
+    display: none;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topbar-info {
+    text-align: left;
+  }
+}

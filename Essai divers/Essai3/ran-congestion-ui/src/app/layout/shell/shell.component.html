@@ -1,0 +1,50 @@
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <a class="brand" routerLink="/dashboard">
+      <strong>RAN CONTROL</strong>
+      <span>Network Operations Center</span>
+    </a>
+
+    <div class="nav-heading">SUPERVISION</div>
+
+    <nav aria-label="Navigation principale">
+      @for (item of navigation; track item.path) {
+        <a
+          class="nav-item"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [attr.aria-current]="
+            item.path === '/dashboard' ? null : undefined
+          "
+        >
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <footer class="sidebar-footer">
+      <span>RAN Congestion Control</span>
+      <span>Interface de supervision</span>
+    </footer>
+  </aside>
+
+  <main class="main-panel">
+    <header class="topbar">
+      <div>
+        <p class="breadcrumb">RAN / OPERATIONS</p>
+        <h1>Network Operations Center</h1>
+      </div>
+
+      <div class="topbar-info">
+        <span class="environment-label">ENVIRONNEMENT</span>
+        <span>Interface de supervision</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+      <router-outlet />
+    </section>
+  </main>
+
+</div>

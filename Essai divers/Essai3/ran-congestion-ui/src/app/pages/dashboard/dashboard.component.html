@@ -1,0 +1,133 @@
+<div class="page-heading">
+  <div>
+    <h2>Dashboard</h2>
+    <p class="muted">
+      Vue globale du réseau et des actions de contrôle.
+    </p>
+  </div>
+
+  <button type="button" (click)="refreshEvents()">
+    Actualiser les événements
+  </button>
+</div>
+
+@if (error) {
+  <p class="panel message" role="alert">{{ error }}</p>
+}
+
+@if (loading) {
+  <p>Chargement du résumé...</p>
+} @else if (summary) {
+  <div class="metric-grid">
+    <article class="panel metric">
+      <span class="muted">Congestions actives</span>
+      <strong>{{ summary.activeCongestions }}</strong>
+    </article>
+
+    <article class="panel metric">
+      <span class="muted">Alertes critiques</span>
+      <strong>{{ summary.criticalAlerts }}</strong>
+    </article>
+
+    <article class="panel metric">
+      <span class="muted">Latence moyenne</span>
+      <strong>
+        {{ summary.averageLatencyMs | number:'1.1-2' }} ms
+      </strong>
+    </article>
+
+    <article class="panel metric">
+      <span class="muted">Utilisation moyenne</span>
+      <strong>
+        {{ summary.averageUtilizationPct | number:'1.1-2' }} %
+      </strong>
+    </article>
+
+    <article class="panel metric">
+      <span class="muted">Actions réussies</span>
+      <strong>{{ summary.successfulActions }}</strong>
+    </article>
+
+    <article class="panel metric">
+      <span class="muted">Actions échouées</span>
+      <strong>{{ summary.failedActions }}</strong>
+    </article>
+  </div>
+} @else {
+  <p class="panel message">
+    Aucune donnée de synthèse disponible.
+  </p>
+}
+
+<p class="muted">
+  Dernière actualisation :
+  {{ lastUpdated ? (lastUpdated | date:'medium') : 'Indisponible' }}
+</p>
+
+<section class="panel data-section">
+  <h3>Événements de congestion</h3>
+
+  @if (congestions.length === 0) {
+    <p class="muted">
+      Aucun événement disponible ou endpoint inaccessible.
+    </p>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Cellule</th>
+            <th>Gravité</th>
+            <th>Score</th>
+            <th>Prédiction</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (event of congestions; track event.id) {
+            <tr>
+              <td>{{ event.cellId }}</td>
+              <td>{{ event.severity }}</td>
+              <td>{{ event.congestionScore }}</td>
+              <td>{{ event.predicted ? 'Oui' : 'Non' }}</td>
+              <td>{{ event.timestamp | date:'short' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<section class="panel data-section">
+  <h3>Historique récent des actions</h3>
+
+  @if (actions.length === 0) {
+    <p class="muted">
+      Aucune action disponible ou endpoint inaccessible.
+    </p>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Cellule</th>
+            <th>Type</th>
+            <th>Statut</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (action of actions; track action.id) {
+            <tr>
+              <td>{{ action.cellId }}</td>
+              <td>{{ action.actionType }}</td>
+              <td>{{ action.status }}</td>
+              <td>{{ action.timestamp | date:'short' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
