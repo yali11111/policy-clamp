@@ -1,0 +1,6 @@
+{
+  "policyId": "beam-guard-policy",
+  "maxInstances": 5,
+  "maxCpu": 85,
+  "minConfidence": 0.90
+}

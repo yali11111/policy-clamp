@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "beam": { "type": "integer" },
+    "confidence": { "type": "number" },
+    "gain": { "type": "number" }
+  },
+  "required": ["beam", "confidence"]
+}

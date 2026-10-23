@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "cellId": { "type": "string" },
+    "throughput": { "type": "number" },
+    "sinr": { "type": "number" },
+    "prb": { "type": "number" },
+    "timestamp": { "type": "string" }
+  },
+  "required": ["cellId", "throughput", "sinr", "prb"]
+}

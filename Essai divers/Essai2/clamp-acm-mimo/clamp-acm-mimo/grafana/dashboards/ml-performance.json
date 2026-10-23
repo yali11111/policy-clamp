@@ -1,0 +1,8 @@
+{
+  "title": "ML Performance",
+  "panels": [
+    { "title": "Prediction Confidence", "type": "gauge" },
+    { "title": "Inference Time", "type": "timeseries" },
+    { "title": "Beam Distribution", "type": "barchart" }
+  ]
+}

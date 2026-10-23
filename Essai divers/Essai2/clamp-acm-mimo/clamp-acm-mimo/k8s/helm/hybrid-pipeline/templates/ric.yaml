@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ric-xapp
+  namespace: clamp-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ric-xapp
+  template:
+    metadata:
+      labels:
+        app: ric-xapp
+    spec:
+      containers:
+        - name: ric
+          image: ric-xapp:latest
+          ports:
+            - containerPort: 8085

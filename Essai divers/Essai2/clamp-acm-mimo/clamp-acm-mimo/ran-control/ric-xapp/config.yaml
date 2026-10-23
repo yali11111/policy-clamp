@@ -1,0 +1,6 @@
+ric:
+  host: ric.local
+  port: 36421
+
+beam:
+  default: 12

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: hybrid-pipeline
+version: 1.0.0
+description: CLAMP + ML + RIC Hybrid System

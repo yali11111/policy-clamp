@@ -1,0 +1,15 @@
+{
+  "policyId": "beam-trigger-policy",
+  "name": "Beam Trigger Policy",
+  "event": "METRIC_UPDATE",
+  "conditions": {
+    "throughput": {
+      "operator": "<",
+      "value": 500
+    },
+    "sinr": {
+      "operator": "<",
+      "value": 20
+    }
+  }
+}

@@ -1,0 +1,19 @@
+parameters:
+
+  throughputThreshold:
+
+    type: integer
+
+    default: 500
+
+  sinrThreshold:
+
+    type: integer
+
+    default: 20
+
+  maxPrb:
+
+    type: integer
+
+    default: 80

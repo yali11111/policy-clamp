@@ -1,0 +1,14 @@
+[
+  {
+    "cellId": "Cell-01",
+    "throughput": 520,
+    "sinr": 23,
+    "prb": 65
+  },
+  {
+    "cellId": "Cell-02",
+    "throughput": 480,
+    "sinr": 18,
+    "prb": 82
+  }
+]

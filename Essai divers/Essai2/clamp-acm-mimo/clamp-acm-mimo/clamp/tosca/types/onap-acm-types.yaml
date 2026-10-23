@@ -1,0 +1,13 @@
+node_types:
+
+  org.onap.acm.Monitoring:
+
+    derived_from: tosca.nodes.Root
+
+    properties:
+
+      topic:
+        type: string
+
+      interval:
+        type: integer

@@ -1,0 +1,9 @@
+{
+  "title": "CLAMP Control Loop",
+  "panels": [
+    { "title": "Throughput", "type": "timeseries" },
+    { "title": "SINR", "type": "timeseries" },
+    { "title": "PRB Usage", "type": "gauge" },
+    { "title": "Kafka Messages", "type": "stat" }
+  ]
+}

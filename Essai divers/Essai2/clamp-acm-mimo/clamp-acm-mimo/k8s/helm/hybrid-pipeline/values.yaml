@@ -1,0 +1,11 @@
+kafka:
+  replicas: 1
+
+ml:
+  image: beam-optimizer:latest
+
+java:
+  image: java-orchestrator:latest
+
+ric:
+  enabled: true

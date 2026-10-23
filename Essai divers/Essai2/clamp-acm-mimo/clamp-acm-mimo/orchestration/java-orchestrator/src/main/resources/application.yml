@@ -1,0 +1,9 @@
+server:
+  port: 8085
+
+spring:
+  kafka:
+    bootstrap-servers: kafka:9092
+
+ml:
+  url: http://beam-optimizer:8000

@@ -1,0 +1,15 @@
+topology_template:
+
+  node_templates:
+
+    beamOptimizer:
+
+      type: org.onap.acm.BeamOptimization
+
+      properties:
+
+        model: beam-ai-v2
+
+        objective: maximize-throughput
+
+        confidenceThreshold: 0.95

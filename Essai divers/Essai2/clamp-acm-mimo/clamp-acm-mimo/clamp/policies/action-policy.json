@@ -1,0 +1,9 @@
+{
+  "policyId": "beam-action-policy",
+  "action": "OPTIMIZE_BEAM",
+  "target": "RIC",
+  "parameters": {
+    "beamId": 12,
+    "power": 18
+  }
+}

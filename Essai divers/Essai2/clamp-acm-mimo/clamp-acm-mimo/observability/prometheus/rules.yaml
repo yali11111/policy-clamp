@@ -1,0 +1,6 @@
+groups:
+  - name: control-loop-alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: cpu_usage > 80
+        for: 1m

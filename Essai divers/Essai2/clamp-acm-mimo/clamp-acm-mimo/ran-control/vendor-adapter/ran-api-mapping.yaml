@@ -1,0 +1,4 @@
+beamUpdate:
+  vendor: Nokia
+  endpoint: /api/v1/beam
+  method: POST

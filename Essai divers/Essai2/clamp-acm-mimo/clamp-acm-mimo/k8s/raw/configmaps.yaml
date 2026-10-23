@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clamp-config
+  namespace: clamp-system
+data:
+  KAFKA_BROKER: kafka:9092
+  ML_URL: http://beam-optimizer:8000
+  CLAMP_URL: http://clamp-runtime:8080

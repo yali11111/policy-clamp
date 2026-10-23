@@ -1,0 +1,6 @@
+collector:
+  host: localhost
+  port: 8443
+
+topics:
+  metrics: kpi-topic

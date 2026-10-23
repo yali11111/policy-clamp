@@ -1,0 +1,6 @@
+{
+  "policyId": "beam-policy",
+  "beam": 12,
+  "minConfidence": 0.95,
+  "maxPower": 18
+}
