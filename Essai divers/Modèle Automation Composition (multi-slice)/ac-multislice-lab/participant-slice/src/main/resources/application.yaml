@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: ac-multislice-lab
+
+  main:
+    banner-mode: "off"
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
+server:
+  port: 8080
+
+# Intégration Kubernetes explicitement désactivée par défaut.
+slice:
+  kubernetes:
+    enabled: false
+
+  quota:
+    max-cpu-millicores: 4000
+    max-memory-mib: 8192
+    max-replicas: 50
+
+  defaults:
+    namespace: network-slices
+    replicas: 1
+    cpu-millicores: 500
+    memory-mib: 512
+
+# Kafka n'est pas configuré dans cette version autonome.
+# L'intégration Kafka ONAP pourra être ajoutée dans une étape ultérieure.
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    org.onap.policy.clamp.acm.participant.multislice: INFO

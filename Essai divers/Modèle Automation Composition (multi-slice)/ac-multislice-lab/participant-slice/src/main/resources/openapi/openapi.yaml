@@ -1,0 +1,21 @@
+openapi: 3.0.3
+
+info:
+  title: AC MultiSlice Lab API
+  version: 1.0.0
+  description: API descriptive du laboratoire multi-slice.
+
+paths:
+  /actuator/health:
+    get:
+      summary: Vérifie l'état du processus applicatif
+      responses:
+        "200":
+          description: Processus accessible
+
+  /api/slices:
+    get:
+      summary: Point d'entrée réservé à une future API de gestion des slices
+      responses:
+        "501":
+          description: API de gestion non implémentée dans cette version

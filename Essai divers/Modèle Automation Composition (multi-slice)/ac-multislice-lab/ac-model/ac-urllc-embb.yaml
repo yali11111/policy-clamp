@@ -1,0 +1,82 @@
+# Modèle déclaratif de laboratoire.
+#
+# Ce document décrit les profils et propriétés attendus.
+# Il n'est pas, à lui seul, un modèle TOSCA complet importable
+# par ONAP ACM : les types et métadonnées doivent être alignés
+# sur la version de modèle de composition utilisée.
+
+model:
+  name: ac-urllc-embb
+  version: 1.0.0
+  description: >
+    Profils applicatifs URLLC et eMBB pour un laboratoire
+    d'orchestration multi-slice.
+
+profiles:
+  URLLC:
+    priority: 100
+    defaultResources:
+      cpuMillicores: 1000
+      memoryMiB: 1024
+    description: >
+      Profil destiné aux workloads sensibles à la latence.
+      Aucune garantie de latence réseau n'est fournie par ce modèle.
+
+  eMBB:
+    priority: 50
+    defaultResources:
+      cpuMillicores: 500
+      memoryMiB: 512
+    description: >
+      Profil destiné aux workloads orientés débit.
+      Aucun débit radio ou réseau n'est réservé par ce modèle.
+
+properties:
+  sliceId:
+    type: string
+    required: true
+
+  sliceType:
+    type: string
+    required: true
+    allowedValues:
+      - URLLC
+      - eMBB
+
+  namespace:
+    type: string
+    required: true
+    default: network-slices
+
+  deploymentName:
+    type: string
+    required: true
+
+  replicas:
+    type: integer
+    required: true
+    minimum: 0
+    default: 1
+
+  cpuMillicores:
+    type: integer
+    required: true
+    minimum: 1
+
+  memoryMiB:
+    type: integer
+    required: true
+    minimum: 1
+
+outputs:
+  sliceStatus:
+    type: string
+
+  appliedReplicas:
+    type: integer
+
+  effectiveSliceType:
+    type: string
+
+  priority:
+    type: integer

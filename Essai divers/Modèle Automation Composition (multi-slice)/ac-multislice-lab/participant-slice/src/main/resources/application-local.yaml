@@ -1,0 +1,8 @@
+# Profil local : conserve les intégrations externes désactivées.
+slice:
+  kubernetes:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
