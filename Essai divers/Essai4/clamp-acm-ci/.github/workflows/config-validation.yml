@@ -1,0 +1,66 @@
+name: CLAMP ACM Configuration Validation
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  pull_request:
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-generated-files:
+    name: Validate generated project files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required project files
+        shell: sh
+        run: |
+          set -eu
+
+          FILES="
+          pom.xml
+          shared-events/pom.xml
+          monitoring-service/pom.xml
+          policy-engine-service/pom.xml
+          automation-controller-service/pom.xml
+          docker/service.Dockerfile
+          .dockerignore
+          kafka-config/topics.properties
+          tosca/compositions/closed-loop-demo.yaml
+          helm/monitoring/Chart.yaml
+          helm/policy-engine/Chart.yaml
+          helm/automation-controller/Chart.yaml
+          "
+
+          for FILE in $FILES; do
+            if [ ! -s "$FILE" ]; then
+              echo "::error file=$FILE::Missing or empty file"
+              exit 1
+            fi
+
+            echo "OK: $FILE"
+          done
+
+      - name: Check generator scripts
+        shell: sh
+        run: |
+          set -eu
+
+          if [ -f scripts/validate-generated-files.sh ]; then
+            sh scripts/validate-generated-files.sh
+          fi
+
+          if [ -f scripts/final-check.sh ]; then
+            sh scripts/final-check.sh
+          fi

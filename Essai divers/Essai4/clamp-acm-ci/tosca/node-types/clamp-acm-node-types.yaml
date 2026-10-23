@@ -1,0 +1,68 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: >
+  Types de noeuds conceptuels pour documenter les composants
+  de supervision, de politique et d'automatisation CLAMP ACM CI.
+
+node_types:
+
+  clamp.acm.nodes.Monitoring:
+    derived_from: tosca.nodes.Root
+    description: Producteur d'evenements de metriques
+    properties:
+      metrics_topic:
+        type: string
+        required: true
+        default: acm.metrics
+      target:
+        type: string
+        required: true
+        default: demo-cell-001
+      interval_ms:
+        type: integer
+        required: true
+        default: 10000
+        constraints:
+          - greater_or_equal: 1000
+
+  clamp.acm.nodes.PolicyEngine:
+    derived_from: tosca.nodes.Root
+    description: Evaluateur des evenements de metriques
+    properties:
+      input_topic:
+        type: string
+        required: true
+        default: acm.metrics
+      output_topic:
+        type: string
+        required: true
+        default: acm.policy-decisions
+      cpu_threshold_pct:
+        type: float
+        required: true
+        default: 80.0
+        constraints:
+          - in_range: [0.0, 100.0]
+      latency_threshold_ms:
+        type: float
+        required: true
+        default: 100.0
+        constraints:
+          - greater_or_equal: 0.0
+
+  clamp.acm.nodes.AutomationController:
+    derived_from: tosca.nodes.Root
+    description: Controleur de demandes d'automatisation
+    properties:
+      decisions_topic:
+        type: string
+        required: true
+        default: acm.policy-decisions
+      execution_enabled:
+        type: boolean
+        required: true
+        default: false
+      require_approval:
+        type: boolean
+        required: true
+        default: true

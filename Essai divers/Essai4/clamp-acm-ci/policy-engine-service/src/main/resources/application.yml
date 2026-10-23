@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: policy-engine-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    streams:
+      application-id: ${KAFKA_STREAMS_APPLICATION_ID:acm-policy-engine}
+
+acm:
+  kafka:
+    metrics-topic: ${ACM_METRICS_TOPIC:acm.metrics}
+    decisions-topic: ${ACM_DECISIONS_TOPIC:acm.policy-decisions}
+
+  policy:
+    cpu-threshold: ${ACM_POLICY_CPU_THRESHOLD:80.0}
+    latency-threshold-ms: ${ACM_POLICY_LATENCY_THRESHOLD_MS:100.0}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: never

@@ -1,0 +1,27 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  template_name: clamp-acm-monitoring-node
+  template_version: 1.0.0
+  template_author: CLAMP ACM CI
+
+description: >
+  Representation logique du producteur de metriques.
+  Ce type descriptif ne configure pas lui-meme une source RAN.
+
+node_types:
+  clamp.acm.nodes.Monitoring:
+    derived_from: tosca.nodes.Root
+    properties:
+      service_name:
+        type: string
+        required: true
+        default: monitoring-service
+      metrics_topic:
+        type: string
+        required: true
+        default: acm.metrics
+      collection_interval_ms:
+        type: integer
+        required: true
+        default: 10000

@@ -1,0 +1,79 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: >
+  Composition de reference CLAMP ACM CI.
+  Cette composition illustre le flux logique entre monitoring,
+  evaluation des politiques et controle des automatisations.
+  Elle ne constitue pas a elle seule un blueprint garanti
+  deployable par toutes les versions ONAP ACM.
+
+imports:
+  - ../node-types/clamp-acm-node-types.yaml
+  - ../policy-types/clamp-acm-policy-types.yaml
+
+topology_template:
+
+  description: >
+    Boucle de supervision avec decisions prudentes et
+    execution reelle desactivee par defaut.
+
+  node_templates:
+
+    monitoring:
+      type: clamp.acm.nodes.Monitoring
+      properties:
+        metrics_topic: acm.metrics
+        target: demo-cell-001
+        interval_ms: 10000
+
+    policy_engine:
+      type: clamp.acm.nodes.PolicyEngine
+      properties:
+        input_topic: acm.metrics
+        output_topic: acm.policy-decisions
+        cpu_threshold_pct: 80.0
+        latency_threshold_ms: 100.0
+
+    automation_controller:
+      type: clamp.acm.nodes.AutomationController
+      properties:
+        decisions_topic: acm.policy-decisions
+        execution_enabled: false
+        require_approval: true
+
+  policies:
+
+    - metrics_threshold_policy:
+        type: clamp.acm.policies.MetricsThreshold
+        description: Seuils de supervision de demonstration
+        properties:
+          cpu_threshold_pct: 80.0
+          latency_threshold_ms: 100.0
+          observation_only: true
+        targets:
+          - monitoring
+
+    - automation_guard_policy:
+        type: clamp.acm.policies.AutomationGuard
+        description: Garde-fous pour les demandes d'action
+        properties:
+          execution_enabled: false
+          require_approval: true
+          max_actions_per_window: 3
+          allowed_actions:
+            - SCALE_OUT
+            - SCALE_IN
+            - TRAFFIC_STEERING
+        targets:
+          - automation_controller
+
+    - closed_loop_policy:
+        type: clamp.acm.policies.ClosedLoopControl
+        description: Controle de la boucle de supervision
+        properties:
+          loop_enabled: true
+          cooldown_seconds: 60
+          on_unknown_state: MANUAL_REVIEW
+        targets:
+          - policy_engine
+          - automation_controller

@@ -1,0 +1,106 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: >
+  Types de politiques de reference pour CLAMP ACM CI.
+  Ces definitions sont generiques et doivent etre adaptees
+  au profil TOSCA et aux types reconnus par la version ONAP ACM.
+
+policy_types:
+
+  clamp.acm.policies.MetricsThreshold:
+    derived_from: tosca.policies.Root
+    description: >
+      Definis les seuils d'observation des metriques.
+      Le depassement d'un seuil ne constitue pas a lui seul
+      une autorisation d'execution d'une action.
+    properties:
+      cpu_threshold_pct:
+        type: float
+        description: Seuil CPU en pourcentage
+        required: true
+        default: 80.0
+        constraints:
+          - in_range: [0.0, 100.0]
+
+      latency_threshold_ms:
+        type: float
+        description: Seuil de latence en millisecondes
+        required: true
+        default: 100.0
+        constraints:
+          - greater_or_equal: 0.0
+
+      observation_only:
+        type: boolean
+        description: >
+          Si true, les decisions restent informatives
+          et ne declenchent pas d'action operationnelle.
+        required: true
+        default: true
+
+  clamp.acm.policies.AutomationGuard:
+    derived_from: tosca.policies.Root
+    description: >
+      Regles de securite appliquees avant une demande
+      d'automatisation.
+    properties:
+      execution_enabled:
+        type: boolean
+        description: Autorise ou non l'execution reelle
+        required: true
+        default: false
+
+      require_approval:
+        type: boolean
+        description: Exige une approbation explicite
+        required: true
+        default: true
+
+      max_actions_per_window:
+        type: integer
+        description: Limite d'actions dans une fenetre de controle
+        required: true
+        default: 3
+        constraints:
+          - greater_or_equal: 0
+
+      allowed_actions:
+        type: list
+        description: Liste blanche des actions permises
+        entry_schema:
+          type: string
+        required: true
+        default:
+          - SCALE_OUT
+          - SCALE_IN
+          - TRAFFIC_STEERING
+
+  clamp.acm.policies.ClosedLoopControl:
+    derived_from: tosca.policies.Root
+    description: >
+      Parametres generiques de la boucle fermee.
+      Le support effectif de ce type doit etre confirme
+      dans le moteur de politiques cible.
+    properties:
+      loop_enabled:
+        type: boolean
+        required: true
+        default: true
+
+      cooldown_seconds:
+        type: integer
+        description: Delai minimal entre deux demandes
+        required: true
+        default: 60
+        constraints:
+          - greater_or_equal: 0
+
+      on_unknown_state:
+        type: string
+        description: Comportement si les donnees sont insuffisantes
+        required: true
+        default: MANUAL_REVIEW
+        constraints:
+          - valid_values:
+              - MANUAL_REVIEW
+              - NO_ACTION

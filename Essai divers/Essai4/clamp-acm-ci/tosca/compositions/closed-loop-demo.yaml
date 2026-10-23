@@ -1,0 +1,66 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  template_name: clamp-acm-closed-loop-demo
+  template_version: 1.0.0
+  template_author: CLAMP ACM CI
+
+description: >
+  Composition logique de reference reliant la supervision,
+  l'evaluation des politiques et le controleur d'automatisation.
+  Cette composition est illustrative et doit etre adaptee
+  au modele de composition de la version ONAP/ACM cible.
+
+imports:
+  - ../node-types/monitoring-node.yaml
+  - ../node-types/policy-engine-node.yaml
+  - ../node-types/automation-controller-node.yaml
+  - ../policy-types/threshold-policy.yaml
+
+topology_template:
+  inputs:
+    target_name:
+      type: string
+      description: Identifiant logique de la cible observee
+      default: demo-cell-001
+
+    cpu_threshold_pct:
+      type: float
+      description: Seuil CPU en pourcentage
+      default: 80.0
+
+    latency_threshold_ms:
+      type: float
+      description: Seuil de latence en millisecondes
+      default: 100.0
+
+  node_templates:
+    monitoring:
+      type: clamp.acm.nodes.Monitoring
+      properties:
+        service_name: monitoring-service
+        metrics_topic: acm.metrics
+        collection_interval_ms: 10000
+
+    policy_engine:
+      type: clamp.acm.nodes.PolicyEngine
+      properties:
+        service_name: policy-engine-service
+        input_topic: acm.metrics
+        output_topic: acm.policy-decisions
+        application_id: acm-policy-engine
+
+    automation_controller:
+      type: clamp.acm.nodes.AutomationController
+      properties:
+        service_name: automation-controller-service
+        input_topic: acm.policy-decisions
+        execution_enabled: false
+
+  policies:
+    threshold_policy:
+      type: clamp.acm.policies.ThresholdPolicy
+      properties:
+        cpu_threshold_pct: 80.0
+        latency_threshold_ms: 100.0
+        require_manual_review: true

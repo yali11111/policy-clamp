@@ -1508,7 +1508,6 @@ done
 
 echo "[3/4] policy-engine-service cree."
 echo "Aucune compilation ni installation effectuee."
-EOF
 
 
 # ============================================================
@@ -2471,3 +2470,1529 @@ echo "Aucune dependance installee."
 echo "Aucun service demarre."
 echo "=========================================="
 
+
+#!/bin/sh
+# ============================================================
+# CLAMP-ACM-CI
+# PARTIE 4/4 - SOUS-PARTIE 1/5
+# Dockerfiles et .dockerignore
+#
+# Generation de fichiers uniquement.
+# Aucun build Docker, aucune installation, aucun service demarre.
+# ============================================================
+
+set -eu
+
+ROOT="clamp-acm-ci"
+
+echo "=========================================="
+echo "CLAMP ACM CI - Partie 4/4 - Sous-partie 1/5"
+echo "Generation des Dockerfiles"
+echo "=========================================="
+
+if [ ! -f "$ROOT/pom.xml" ]; then
+    echo "ERREUR : $ROOT/pom.xml introuvable."
+    echo "Execute d'abord les parties 1/4, 2/4 et 3/4."
+    exit 1
+fi
+
+mkdir -p "$ROOT/docker"
+
+# ------------------------------------------------------------
+# 1. FICHIER .dockerignore
+# ------------------------------------------------------------
+
+cat > "$ROOT/.dockerignore" <<'EOF'
+# Controle de version
+.git
+.gitignore
+
+# Artefacts Maven generes
+**/target/
+**/build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Journaux
+*.log
+logs/
+
+# Secrets et configurations locales
+.env
+.env.*
+!.env.example
+**/secrets/
+**/*.pem
+**/*.key
+**/*credentials*
+
+# Systeme
+.DS_Store
+Thumbs.db
+
+# Cache et fichiers temporaires
+.tmp/
+.cache/
+*.swp
+*.tmp
+EOF
+
+# ------------------------------------------------------------
+# 2. DOCKERFILE MULTI-STAGE
+# ------------------------------------------------------------
+
+cat > "$ROOT/docker/service.Dockerfile" <<'EOF'
+# ============================================================
+# Etape 1 : construction Maven avec Java 21
+# Contexte de build : racine du depot clamp-acm-ci
+# ============================================================
+
+FROM maven:3.9-eclipse-temurin-21 AS build
+
+WORKDIR /workspace
+
+# Copie du projet, hors fichiers exclus par .dockerignore.
+COPY . .
+
+# Le module a construire est fourni via --build-arg MODULE=...
+ARG MODULE
+
+RUN test -n "$MODULE" \
+    && test -f "$MODULE/pom.xml" \
+    && mvn -B -ntp \
+       -pl "$MODULE" -am \
+       clean package \
+       -DskipTests \
+    && test -f "$MODULE/target/$MODULE-1.0.0.jar"
+
+# ============================================================
+# Etape 2 : image d'execution Java 21
+# ============================================================
+
+FROM eclipse-temurin:21-jre
+
+WORKDIR /app
+
+# Identite non privilegiee pour l'execution.
+RUN groupadd --system app \
+    && useradd --system \
+       --gid app \
+       --home-dir /app \
+       --shell /usr/sbin/nologin \
+       app
+
+ARG MODULE
+
+COPY --from=build \
+    --chown=app:app \
+    /workspace/${MODULE}/target/${MODULE}-1.0.0.jar \
+    /app/app.jar
+
+USER app
+
+ENV JAVA_OPTS=""
+
+# Le processus Java reste le processus principal du conteneur.
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
+EOF
+
+# ------------------------------------------------------------
+# 3. DOCUMENTATION DOCKER
+# ------------------------------------------------------------
+
+cat > "$ROOT/docker/README.md" <<'EOF'
+# Docker - CLAMP ACM CI
+
+## Fichiers
+
+- ../.dockerignore : exclusions du contexte Docker.
+- service.Dockerfile : construction multi-stage des microservices.
+
+## Prerequis pour une construction reelle
+
+- Docker disponible.
+- Java 21 compatible avec le projet.
+- Acces au depot Maven pour telecharger les dependances.
+- POM racine et modules presents dans le contexte de build.
+
+## Construire une image
+
+Toutes les commandes suivantes sont des exemples documentaires.
+Elles ne sont pas executees par les scripts de generation.
+
+Depuis la racine du depot clamp-acm-ci :
+
+### Monitoring
+
+docker build \
+  -f docker/service.Dockerfile \
+  --build-arg MODULE=monitoring-service \
+  -t clamp-acm/monitoring-service:1.0.0 .
+
+### Policy Engine
+
+docker build \
+  -f docker/service.Dockerfile \
+  --build-arg MODULE=policy-engine-service \
+  -t clamp-acm/policy-engine-service:1.0.0 .
+
+### Automation Controller
+
+docker build \
+  -f docker/service.Dockerfile \
+  --build-arg MODULE=automation-controller-service \
+  -t clamp-acm/automation-controller-service:1.0.0 .
+
+## Fonctionnement
+
+L'etape build utilise Maven pour construire le module demande
+et ses dependances Maven internes.
+
+L'option -DskipTests evite l'execution des tests, mais n'evite
+pas la compilation. La commande clean package compile le code
+et produit le JAR.
+
+L'image finale contient uniquement le JAR et le runtime Java,
+pas le depot Maven complet.
+
+## Limites
+
+- Le nom du JAR suppose une version Maven 1.0.0.
+- Les images de base doivent etre controlees et mises a jour.
+- Les dependances Maven doivent etre accessibles au build.
+- Les images doivent etre analysees avant une publication.
+- Les secrets ne doivent jamais etre copies dans l'image.
+- Aucun deploiement Kubernetes n'est effectue ici.
+EOF
+
+# ------------------------------------------------------------
+# 4. VERIFICATION STATIQUE
+# ------------------------------------------------------------
+
+echo ""
+echo "Verification des fichiers generes"
+
+for FILE in \
+    "$ROOT/.dockerignore" \
+    "$ROOT/docker/service.Dockerfile" \
+    "$ROOT/docker/README.md"
+do
+    if [ -s "$FILE" ]; then
+        echo "OK : $FILE"
+    else
+        echo "ERREUR : fichier absent ou vide : $FILE"
+        exit 1
+    fi
+done
+
+echo ""
+echo "Sous-partie 1/5 terminee."
+echo "Dockerfiles et .dockerignore generes."
+echo "Aucun build Docker execute."
+echo "Aucune image construite."
+echo "Aucun conteneur demarre."
+
+# ============================================================
+# CLAMP-ACM-CI
+# PARTIE 4/4 - SOUS-PARTIE 2/5
+# Pipeline CI GitHub Actions
+#
+# Generation des workflows uniquement.
+# Aucune installation, compilation ou execution Docker locale.
+# ============================================================
+
+set -eu
+
+ROOT="clamp-acm-ci"
+WORKFLOWS="$ROOT/.github/workflows"
+
+echo "=========================================="
+echo "CLAMP ACM CI - Sous-partie 2/5"
+echo "Generation GitHub Actions"
+echo "=========================================="
+
+if [ ! -f "$ROOT/pom.xml" ]; then
+    echo "ERREUR : $ROOT/pom.xml introuvable."
+    echo "Execute d'abord les parties precedentes."
+    exit 1
+fi
+
+if [ ! -f "$ROOT/docker/service.Dockerfile" ]; then
+    echo "ERREUR : Dockerfile absent."
+    echo "Execute d'abord la sous-partie 1/5."
+    exit 1
+fi
+
+mkdir -p "$WORKFLOWS"
+
+# ------------------------------------------------------------
+# 1. WORKFLOW PRINCIPAL CI
+# ------------------------------------------------------------
+
+cat > "$WORKFLOWS/ci.yml" <<'EOF'
+name: CLAMP ACM CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  pull_request:
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clamp-acm-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-test:
+    name: Validate, compile and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Validate Maven project
+        run: mvn -B -ntp validate
+
+      - name: Build and test all modules
+        run: mvn -B -ntp verify
+
+  docker-build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    needs: validate-and-test
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: monitoring-service
+            image: clamp-acm/monitoring-service
+
+          - module: policy-engine-service
+            image: clamp-acm/policy-engine-service
+
+          - module: automation-controller-service
+            image: clamp-acm/automation-controller-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image without publishing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/service.Dockerfile
+          push: false
+          tags: ${{ matrix.image }}:${{ github.sha }}
+          build-args: |
+            MODULE=${{ matrix.module }}
+          cache-from: type=gha,scope=${{ matrix.module }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.module }}
+EOF
+
+# ------------------------------------------------------------
+# 2. WORKFLOW DE VALIDATION DES FICHIERS DE CONFIGURATION
+# ------------------------------------------------------------
+
+cat > "$WORKFLOWS/config-validation.yml" <<'EOF'
+name: CLAMP ACM Configuration Validation
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  pull_request:
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-generated-files:
+    name: Validate generated project files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required project files
+        shell: sh
+        run: |
+          set -eu
+
+          FILES="
+          pom.xml
+          shared-events/pom.xml
+          monitoring-service/pom.xml
+          policy-engine-service/pom.xml
+          automation-controller-service/pom.xml
+          docker/service.Dockerfile
+          .dockerignore
+          kafka-config/topics.properties
+          tosca/compositions/closed-loop-demo.yaml
+          helm/monitoring/Chart.yaml
+          helm/policy-engine/Chart.yaml
+          helm/automation-controller/Chart.yaml
+          "
+
+          for FILE in $FILES; do
+            if [ ! -s "$FILE" ]; then
+              echo "::error file=$FILE::Missing or empty file"
+              exit 1
+            fi
+
+            echo "OK: $FILE"
+          done
+
+      - name: Check generator scripts
+        shell: sh
+        run: |
+          set -eu
+
+          if [ -f scripts/validate-generated-files.sh ]; then
+            sh scripts/validate-generated-files.sh
+          fi
+
+          if [ -f scripts/final-check.sh ]; then
+            sh scripts/final-check.sh
+          fi
+EOF
+
+# ------------------------------------------------------------
+# 3. DOCUMENTATION DU PIPELINE
+# ------------------------------------------------------------
+
+cat > "$WORKFLOWS/README.md" <<'EOF'
+# Pipelines GitHub Actions
+
+## ci.yml
+
+Ce workflow :
+
+1. Recupere le depot.
+2. Configure Java 21.
+3. Valide les POM Maven.
+4. Compile les modules et execute les tests avec Maven verify.
+5. Construit les trois images Docker sans publication.
+
+Les images ne sont pas poussees vers un registre.
+
+Le build Docker reutilise docker/service.Dockerfile et le
+parametre MODULE pour construire chaque microservice.
+
+## config-validation.yml
+
+Ce workflow verifie la presence des fichiers structurants
+du depot et execute les scripts de validation disponibles.
+
+La validation de presence ne garantit pas la validite
+syntaxique des fichiers YAML ou la compatibilite TOSCA.
+
+## Parametres de securite
+
+- Les permissions GitHub sont limitees a contents: read.
+- Aucun secret de registre n'est necessaire.
+- Aucun deploiement Kubernetes n'est execute.
+- Les pull requests ne publient aucune image.
+
+Pour la production, auditer les actions externes et les
+epingler sur des SHA de commit verifies.
+
+## Resultats attendus
+
+Une compilation ou un test en echec bloque le job Docker.
+
+Une erreur de configuration detectee par le workflow
+config-validation provoque l'echec du job correspondant.
+EOF
+
+# ------------------------------------------------------------
+# 4. VERIFICATION STATIQUE
+# ------------------------------------------------------------
+
+echo ""
+echo "Verification des fichiers generes"
+
+for FILE in \
+  "$WORKFLOWS/ci.yml" \
+  "$WORKFLOWS/config-validation.yml" \
+  "$WORKFLOWS/README.md"
+do
+    if [ -s "$FILE" ]; then
+        echo "OK : $FILE"
+    else
+        echo "ERREUR : fichier absent ou vide : $FILE"
+        exit 1
+    fi
+done
+
+echo ""
+echo "Sous-partie 2/5 terminee."
+echo "Workflows GitHub Actions generes."
+echo "Aucune compilation locale executee."
+echo "Aucune image publiee."
+echo "Aucun deploiement effectue."
+
+
+# ============================================================
+# FIN
+# ============================================================
+
+# ============================================================
+# CLAMP ACM CI
+# PARTIE 4/4 - SOUS-PARTIE 3/5
+# Chartes Helm et ressources Kubernetes
+#
+# Generation de fichiers uniquement.
+# Aucune installation, compilation ou execution de service.
+# ============================================================
+
+set -eu
+
+ROOT="clamp-acm-ci"
+HELM="$ROOT/helm"
+
+echo "=========================================="
+echo "CLAMP ACM CI - Partie 4/4 - Sous-partie 3/5"
+echo "Generation des chartes Helm"
+echo "=========================================="
+
+mkdir -p \
+  "$HELM/monitoring/templates" \
+  "$HELM/policy-engine/templates" \
+  "$HELM/automation-controller/templates"
+
+# ------------------------------------------------------------
+# 1. FONCTION DE GENERATION D'UNE CHARTE
+# ------------------------------------------------------------
+
+write_chart() {
+    CHART_NAME="$1"
+    APP_NAME="$2"
+    APP_PORT="$3"
+    IMAGE_NAME="$4"
+    REPLICAS="$5"
+    KAFKA_REQUIRED="$6"
+
+    CHART_DIR="$HELM/$CHART_NAME"
+
+    mkdir -p "$CHART_DIR/templates"
+
+    cat > "$CHART_DIR/Chart.yaml" <<EOF
+apiVersion: v2
+name: $CHART_NAME
+description: Helm chart for CLAMP ACM $APP_NAME
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+EOF
+
+    cat > "$CHART_DIR/values.yaml" <<EOF
+replicaCount: $REPLICAS
+
+image:
+  repository: "clamp-acm-ci/$IMAGE_NAME"
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: $APP_PORT
+
+containerPort: $APP_PORT
+
+kafka:
+  required: $KAFKA_REQUIRED
+  bootstrapServers: "kafka:9092"
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+# Ne pas activer l'execution reelle sans adaptateur,
+# autorisations et controles operationnels.
+automation:
+  executionEnabled: false
+EOF
+
+    cat > "$CHART_DIR/templates/_helpers.tpl" <<EOF
+{{- define "$CHART_NAME.name" -}}
+{{- .Chart.Name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "$CHART_NAME.fullname" -}}
+{{- printf "%s-%s" .Release.Name .Chart.Name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "$CHART_NAME.labels" -}}
+app.kubernetes.io/name: {{ include "$CHART_NAME.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+{{- end }}
+EOF
+
+    cat > "$CHART_DIR/templates/serviceaccount.yaml" <<EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "$CHART_NAME.fullname" . }}
+  labels:
+    {{- include "$CHART_NAME.labels" . | nindent 4 }}
+automountServiceAccountToken: false
+EOF
+
+    cat > "$CHART_DIR/templates/deployment.yaml" <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "$CHART_NAME.fullname" . }}
+  labels:
+    {{- include "$CHART_NAME.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "$CHART_NAME.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "$CHART_NAME.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "$CHART_NAME.fullname" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: $APP_NAME
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.containerPort | quote }}
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.bootstrapServers | quote }}
+            - name: ACM_AUTOMATION_EXECUTION_ENABLED
+              value: {{ .Values.automation.executionEnabled | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+EOF
+
+    cat > "$CHART_DIR/templates/service.yaml" <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "$CHART_NAME.fullname" . }}
+  labels:
+    {{- include "$CHART_NAME.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ include "$CHART_NAME.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+EOF
+}
+
+# ------------------------------------------------------------
+# 2. GENERATION DES TROIS CHARTES
+# ------------------------------------------------------------
+
+write_chart \
+  "monitoring" \
+  "monitoring-service" \
+  "8081" \
+  "monitoring-service" \
+  "1" \
+  "true"
+
+write_chart \
+  "policy-engine" \
+  "policy-engine-service" \
+  "8082" \
+  "policy-engine-service" \
+  "1" \
+  "true"
+
+write_chart \
+  "automation-controller" \
+  "automation-controller-service" \
+  "8083" \
+  "automation-controller-service" \
+  "1" \
+  "true"
+
+# ------------------------------------------------------------
+# 3. DOCUMENTATION HELM
+# ------------------------------------------------------------
+
+cat > "$HELM/README.md" <<'EOF'
+# Déploiement Helm CLAMP ACM CI
+
+Trois chartes sont générées :
+
+- monitoring
+- policy-engine
+- automation-controller
+
+## Prérequis pour un déploiement ultérieur
+
+- Un cluster Kubernetes opérationnel.
+- Helm installé sur la machine d'administration.
+- Les images des trois services construites et disponibles.
+- Un broker Kafka accessible depuis le cluster.
+- Une configuration de sécurité adaptée à l'environnement.
+
+## Configuration Kafka
+
+La valeur par défaut est kafka:9092.
+
+Adapter cette adresse à l'installation réelle. Pour un cluster
+de production, utiliser TLS, une authentification adaptée et
+des secrets Kubernetes gérés de façon sécurisée.
+
+## Exemple de validation ultérieure
+
+helm lint helm/monitoring
+helm lint helm/policy-engine
+helm lint helm/automation-controller
+
+## Exemple de rendu sans déploiement
+
+helm template acm-monitoring helm/monitoring
+helm template acm-policy helm/policy-engine
+helm template acm-automation helm/automation-controller
+
+## Attention aux ports HTTP
+
+Le monitoring-service et le policy-engine-service générés
+précédemment ne disposent pas nécessairement d'un serveur HTTP.
+Leurs Services Kubernetes ne garantissent donc pas une
+accessibilité HTTP. Ne pas activer de sondes HTTP avant d'avoir
+configuré un endpoint réel.
+
+Le contrôleur d'automatisation écoute par défaut sur le port 8083.
+
+## Exécution réelle
+
+La valeur automation.executionEnabled reste false par défaut.
+La passer à true ne suffit pas à mettre en œuvre un adaptateur
+réseau sûr. Une intégration réelle doit inclure des autorisations,
+des validations de cible, des limites opérationnelles, une
+gestion des erreurs et une traçabilité complète.
+EOF
+
+# ------------------------------------------------------------
+# 4. VERIFICATIONS STATIQUES
+# ------------------------------------------------------------
+
+for FILE in \
+  "$HELM/monitoring/Chart.yaml" \
+  "$HELM/monitoring/values.yaml" \
+  "$HELM/monitoring/templates/deployment.yaml" \
+  "$HELM/monitoring/templates/service.yaml" \
+  "$HELM/policy-engine/Chart.yaml" \
+  "$HELM/policy-engine/values.yaml" \
+  "$HELM/policy-engine/templates/deployment.yaml" \
+  "$HELM/policy-engine/templates/service.yaml" \
+  "$HELM/automation-controller/Chart.yaml" \
+  "$HELM/automation-controller/values.yaml" \
+  "$HELM/automation-controller/templates/deployment.yaml" \
+  "$HELM/automation-controller/templates/service.yaml" \
+  "$HELM/README.md"
+do
+    if [ ! -s "$FILE" ]; then
+        echo "ERREUR : fichier absent ou vide : $FILE"
+        exit 1
+    fi
+
+    echo "OK : $FILE"
+done
+
+echo ""
+echo "Sous-partie 3/5 terminee."
+echo "Chartes Helm generees."
+echo "Aucune installation ou aucun deploiement execute."
+
+# ============================================================
+# CLAMP ACM CI
+# PARTIE 4/4 - SOUS-PARTIE 4/5
+# Types TOSCA, politiques et composition de boucle fermee
+#
+# Generation de fichiers uniquement.
+# Aucun appel Maven, Docker, Helm ou Kubernetes.
+# ============================================================
+
+set -eu
+
+ROOT="clamp-acm-ci"
+TOSCA="$ROOT/tosca"
+
+echo "=========================================="
+echo "CLAMP ACM CI - Partie 4/4 - Sous-partie 4/5"
+echo "Generation des modeles TOSCA"
+echo "=========================================="
+
+mkdir -p \
+  "$TOSCA/policy-types" \
+  "$TOSCA/node-types" \
+  "$TOSCA/compositions"
+
+# ------------------------------------------------------------
+# 1. TYPES DE POLITIQUES
+# ------------------------------------------------------------
+
+cat > "$TOSCA/policy-types/clamp-acm-policy-types.yaml" <<'EOF'
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: >
+  Types de politiques de reference pour CLAMP ACM CI.
+  Ces definitions sont generiques et doivent etre adaptees
+  au profil TOSCA et aux types reconnus par la version ONAP ACM.
+
+policy_types:
+
+  clamp.acm.policies.MetricsThreshold:
+    derived_from: tosca.policies.Root
+    description: >
+      Definis les seuils d'observation des metriques.
+      Le depassement d'un seuil ne constitue pas a lui seul
+      une autorisation d'execution d'une action.
+    properties:
+      cpu_threshold_pct:
+        type: float
+        description: Seuil CPU en pourcentage
+        required: true
+        default: 80.0
+        constraints:
+          - in_range: [0.0, 100.0]
+
+      latency_threshold_ms:
+        type: float
+        description: Seuil de latence en millisecondes
+        required: true
+        default: 100.0
+        constraints:
+          - greater_or_equal: 0.0
+
+      observation_only:
+        type: boolean
+        description: >
+          Si true, les decisions restent informatives
+          et ne declenchent pas d'action operationnelle.
+        required: true
+        default: true
+
+  clamp.acm.policies.AutomationGuard:
+    derived_from: tosca.policies.Root
+    description: >
+      Regles de securite appliquees avant une demande
+      d'automatisation.
+    properties:
+      execution_enabled:
+        type: boolean
+        description: Autorise ou non l'execution reelle
+        required: true
+        default: false
+
+      require_approval:
+        type: boolean
+        description: Exige une approbation explicite
+        required: true
+        default: true
+
+      max_actions_per_window:
+        type: integer
+        description: Limite d'actions dans une fenetre de controle
+        required: true
+        default: 3
+        constraints:
+          - greater_or_equal: 0
+
+      allowed_actions:
+        type: list
+        description: Liste blanche des actions permises
+        entry_schema:
+          type: string
+        required: true
+        default:
+          - SCALE_OUT
+          - SCALE_IN
+          - TRAFFIC_STEERING
+
+  clamp.acm.policies.ClosedLoopControl:
+    derived_from: tosca.policies.Root
+    description: >
+      Parametres generiques de la boucle fermee.
+      Le support effectif de ce type doit etre confirme
+      dans le moteur de politiques cible.
+    properties:
+      loop_enabled:
+        type: boolean
+        required: true
+        default: true
+
+      cooldown_seconds:
+        type: integer
+        description: Delai minimal entre deux demandes
+        required: true
+        default: 60
+        constraints:
+          - greater_or_equal: 0
+
+      on_unknown_state:
+        type: string
+        description: Comportement si les donnees sont insuffisantes
+        required: true
+        default: MANUAL_REVIEW
+        constraints:
+          - valid_values:
+              - MANUAL_REVIEW
+              - NO_ACTION
+EOF
+
+# ------------------------------------------------------------
+# 2. TYPES DE NOEUDS
+# ------------------------------------------------------------
+
+cat > "$TOSCA/node-types/clamp-acm-node-types.yaml" <<'EOF'
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: >
+  Types de noeuds conceptuels pour documenter les composants
+  de supervision, de politique et d'automatisation CLAMP ACM CI.
+
+node_types:
+
+  clamp.acm.nodes.Monitoring:
+    derived_from: tosca.nodes.Root
+    description: Producteur d'evenements de metriques
+    properties:
+      metrics_topic:
+        type: string
+        required: true
+        default: acm.metrics
+      target:
+        type: string
+        required: true
+        default: demo-cell-001
+      interval_ms:
+        type: integer
+        required: true
+        default: 10000
+        constraints:
+          - greater_or_equal: 1000
+
+  clamp.acm.nodes.PolicyEngine:
+    derived_from: tosca.nodes.Root
+    description: Evaluateur des evenements de metriques
+    properties:
+      input_topic:
+        type: string
+        required: true
+        default: acm.metrics
+      output_topic:
+        type: string
+        required: true
+        default: acm.policy-decisions
+      cpu_threshold_pct:
+        type: float
+        required: true
+        default: 80.0
+        constraints:
+          - in_range: [0.0, 100.0]
+      latency_threshold_ms:
+        type: float
+        required: true
+        default: 100.0
+        constraints:
+          - greater_or_equal: 0.0
+
+  clamp.acm.nodes.AutomationController:
+    derived_from: tosca.nodes.Root
+    description: Controleur de demandes d'automatisation
+    properties:
+      decisions_topic:
+        type: string
+        required: true
+        default: acm.policy-decisions
+      execution_enabled:
+        type: boolean
+        required: true
+        default: false
+      require_approval:
+        type: boolean
+        required: true
+        default: true
+EOF
+
+# ------------------------------------------------------------
+# 3. COMPOSITION DE BOUCLE FERMEE
+# ------------------------------------------------------------
+
+cat > "$TOSCA/compositions/clamp-acm-closed-loop.yaml" <<'EOF'
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: >
+  Composition de reference CLAMP ACM CI.
+  Cette composition illustre le flux logique entre monitoring,
+  evaluation des politiques et controle des automatisations.
+  Elle ne constitue pas a elle seule un blueprint garanti
+  deployable par toutes les versions ONAP ACM.
+
+imports:
+  - ../node-types/clamp-acm-node-types.yaml
+  - ../policy-types/clamp-acm-policy-types.yaml
+
+topology_template:
+
+  description: >
+    Boucle de supervision avec decisions prudentes et
+    execution reelle desactivee par defaut.
+
+  node_templates:
+
+    monitoring:
+      type: clamp.acm.nodes.Monitoring
+      properties:
+        metrics_topic: acm.metrics
+        target: demo-cell-001
+        interval_ms: 10000
+
+    policy_engine:
+      type: clamp.acm.nodes.PolicyEngine
+      properties:
+        input_topic: acm.metrics
+        output_topic: acm.policy-decisions
+        cpu_threshold_pct: 80.0
+        latency_threshold_ms: 100.0
+
+    automation_controller:
+      type: clamp.acm.nodes.AutomationController
+      properties:
+        decisions_topic: acm.policy-decisions
+        execution_enabled: false
+        require_approval: true
+
+  policies:
+
+    - metrics_threshold_policy:
+        type: clamp.acm.policies.MetricsThreshold
+        description: Seuils de supervision de demonstration
+        properties:
+          cpu_threshold_pct: 80.0
+          latency_threshold_ms: 100.0
+          observation_only: true
+        targets:
+          - monitoring
+
+    - automation_guard_policy:
+        type: clamp.acm.policies.AutomationGuard
+        description: Garde-fous pour les demandes d'action
+        properties:
+          execution_enabled: false
+          require_approval: true
+          max_actions_per_window: 3
+          allowed_actions:
+            - SCALE_OUT
+            - SCALE_IN
+            - TRAFFIC_STEERING
+        targets:
+          - automation_controller
+
+    - closed_loop_policy:
+        type: clamp.acm.policies.ClosedLoopControl
+        description: Controle de la boucle de supervision
+        properties:
+          loop_enabled: true
+          cooldown_seconds: 60
+          on_unknown_state: MANUAL_REVIEW
+        targets:
+          - policy_engine
+          - automation_controller
+EOF
+
+# ------------------------------------------------------------
+# 4. DOCUMENTATION ET LIMITES D'INTEGRATION
+# ------------------------------------------------------------
+
+cat > "$TOSCA/README.md" <<'EOF'
+# Modeles TOSCA CLAMP ACM CI
+
+## Contenu
+
+- policy-types/clamp-acm-policy-types.yaml :
+  types de politiques de supervision et de controle.
+
+- node-types/clamp-acm-node-types.yaml :
+  types conceptuels des trois composants.
+
+- compositions/clamp-acm-closed-loop.yaml :
+  composition illustrative de boucle fermee.
+
+## Flux logique
+
+1. Monitoring publie MetricsEvent sur acm.metrics.
+2. Le moteur de politiques analyse les metriques.
+3. Une PolicyDecisionEvent est publiee sur
+   acm.policy-decisions.
+4. Le controleur valide la demande.
+5. L'execution reelle reste desactivee par defaut.
+
+## Compatibilite ONAP ACM
+
+Les types TOSCA generiques ne sont pas necessairement des types
+natifs acceptes par le moteur de composition ONAP ACM.
+
+Avant tout deploiement :
+
+- confirmer la version ONAP ACM et son profil TOSCA ;
+- verifier les types de politiques et de noeuds reconnus ;
+- adapter les imports et les definitions aux modeles de cette version ;
+- verifier les exigences de distribution, de controle et de runtime ;
+- executer les validateurs officiels disponibles pour cette version.
+
+La composition presentee ici est un modele de reference.
+Sa generation ne prouve pas son acceptation par ONAP ACM.
+
+## Limites fonctionnelles
+
+Les proprietes TOSCA documentent des objectifs de configuration.
+Elles ne modifient pas automatiquement le comportement des
+applications Spring Boot generees dans les parties precedentes.
+
+En particulier, le cooldown, l'approbation obligatoire et la limite
+d'actions doivent etre implementes et testes dans le controleur
+avant de considerer ces protections comme effectives.
+
+Le moteur de politiques actuel renvoie MANUAL_REVIEW en cas de
+depassement de seuil ; il ne genere pas automatiquement une
+demande SCALE_OUT ou SCALE_IN.
+
+## Securite
+
+- Ne jamais activer une action reelle uniquement parce qu'un seuil
+  a ete depasse.
+- Verifier la cible, les droits et les limites avant toute operation.
+- Conserver les identifiants de correlation et les resultats.
+- Refuser les actions inconnues.
+- Maintenir l'execution desactivee pendant la validation initiale.
+EOF
+
+# ------------------------------------------------------------
+# 5. VERIFICATION STATIQUE DES FICHIERS
+# ------------------------------------------------------------
+
+for FILE in \
+  "$TOSCA/policy-types/clamp-acm-policy-types.yaml" \
+  "$TOSCA/node-types/clamp-acm-node-types.yaml" \
+  "$TOSCA/compositions/clamp-acm-closed-loop.yaml" \
+  "$TOSCA/README.md"
+do
+    if [ ! -s "$FILE" ]; then
+        echo "ERREUR : fichier absent ou vide : $FILE"
+        exit 1
+    fi
+
+    echo "OK : $FILE"
+done
+
+echo ""
+echo "Sous-partie 4/5 terminee."
+echo "Modeles TOSCA generes."
+echo "Aucune dependance installee."
+echo "Aucune validation ONAP executee."
+
+
+# ============================================================
+# CLAMP ACM CI
+# PARTIE 4/4 - SOUS-PARTIE 5/5
+# Validation statique finale et documentation
+#
+# Aucun telechargement.
+# Aucune installation de dependance.
+# Aucune compilation.
+# Aucun demarrage de service.
+# ============================================================
+
+set -eu
+
+ROOT="clamp-acm-ci"
+REPORT="$ROOT/validation-report.txt"
+ERRORS=0
+CHECKS=0
+
+echo "=========================================="
+echo "CLAMP ACM CI - Validation finale"
+echo "Partie 4/4 - Sous-partie 5/5"
+echo "=========================================="
+
+if [ ! -d "$ROOT" ]; then
+    echo "ERREUR : repertoire $ROOT introuvable."
+    echo "Execute d'abord les generateurs des parties precedentes."
+    exit 1
+fi
+
+# ------------------------------------------------------------
+# 1. INITIALISATION DU RAPPORT
+# ------------------------------------------------------------
+
+cat > "$REPORT" <<'EOF'
+CLAMP ACM CI - RAPPORT DE VALIDATION STATIQUE
+=============================================
+
+Ce rapport confirme uniquement les controles statiques
+effectivement realises par le script.
+
+Aucune compilation Maven, execution Docker, validation Helm
+ou validation ONAP ACM n'est effectuee automatiquement.
+EOF
+
+# ------------------------------------------------------------
+# 2. FONCTIONS DE VERIFICATION
+# ------------------------------------------------------------
+
+check_file() {
+    FILE="$1"
+    CHECKS=$((CHECKS + 1))
+
+    if [ -s "$FILE" ]; then
+        echo "OK      : $FILE"
+        printf 'OK      : %s\n' "$FILE" >> "$REPORT"
+    else
+        echo "ERREUR  : fichier absent ou vide : $FILE"
+        printf 'ERREUR  : %s\n' "$FILE" >> "$REPORT"
+        ERRORS=$((ERRORS + 1))
+    fi
+}
+
+check_directory() {
+    DIR="$1"
+    CHECKS=$((CHECKS + 1))
+
+    if [ -d "$DIR" ]; then
+        echo "OK      : repertoire $DIR"
+        printf 'OK      : repertoire %s\n' "$DIR" >> "$REPORT"
+    else
+        echo "ERREUR  : repertoire absent : $DIR"
+        printf 'ERREUR  : repertoire %s\n' "$DIR" >> "$REPORT"
+        ERRORS=$((ERRORS + 1))
+    fi
+}
+
+check_contains() {
+    FILE="$1"
+    PATTERN="$2"
+    DESCRIPTION="$3"
+    CHECKS=$((CHECKS + 1))
+
+    if [ ! -s "$FILE" ]; then
+        echo "ERREUR  : $DESCRIPTION (fichier absent ou vide)"
+        printf 'ERREUR  : %s\n' "$DESCRIPTION" >> "$REPORT"
+        ERRORS=$((ERRORS + 1))
+        return
+    fi
+
+    if grep -F -q "$PATTERN" "$FILE"; then
+        echo "OK      : $DESCRIPTION"
+        printf 'OK      : %s\n' "$DESCRIPTION" >> "$REPORT"
+    else
+        echo "ERREUR  : $DESCRIPTION"
+        printf 'ERREUR  : %s\n' "$DESCRIPTION" >> "$REPORT"
+        ERRORS=$((ERRORS + 1))
+    fi
+}
+
+# ------------------------------------------------------------
+# 3. SOCLE MAVEN ET MODULES
+# ------------------------------------------------------------
+
+echo ""
+echo "[1/7] Verification du socle Maven"
+
+check_file "$ROOT/pom.xml"
+check_file "$ROOT/shared-events/pom.xml"
+check_file "$ROOT/monitoring-service/pom.xml"
+check_file "$ROOT/policy-engine-service/pom.xml"
+check_file "$ROOT/automation-controller-service/pom.xml"
+
+check_contains \
+    "$ROOT/pom.xml" \
+    '<module>shared-events</module>' \
+    "Module shared-events declare"
+
+check_contains \
+    "$ROOT/pom.xml" \
+    '<module>monitoring-service</module>' \
+    "Module monitoring-service declare"
+
+check_contains \
+    "$ROOT/pom.xml" \
+    '<module>policy-engine-service</module>' \
+    "Module policy-engine-service declare"
+
+check_contains \
+    "$ROOT/pom.xml" \
+    '<module>automation-controller-service</module>' \
+    "Module automation-controller-service declare"
+
+# ------------------------------------------------------------
+# 4. CONTRATS ET SERVICES JAVA
+# ------------------------------------------------------------
+
+echo ""
+echo "[2/7] Verification des contrats et des applications"
+
+check_file \
+  "$ROOT/shared-events/src/main/java/com/clamp/acm/events/MetricsEvent.java"
+
+check_file \
+  "$ROOT/shared-events/src/main/java/com/clamp/acm/events/PolicyDecisionEvent.java"
+
+check_file \
+  "$ROOT/shared-events/src/main/resources/schema/metrics-event.schema.json"
+
+check_file \
+  "$ROOT/shared-events/src/main/resources/schema/policy-decision-event.schema.json"
+
+check_file \
+  "$ROOT/monitoring-service/src/main/java/com/clamp/acm/monitoring/MonitoringApplication.java"
+
+check_file \
+  "$ROOT/monitoring-service/src/main/java/com/clamp/acm/monitoring/MonitoringProducer.java"
+
+check_file \
+  "$ROOT/monitoring-service/src/main/resources/application.yml"
+
+check_file \
+  "$ROOT/policy-engine-service/src/main/java/com/clamp/acm/policy/PolicyApplication.java"
+
+check_file \
+  "$ROOT/policy-engine-service/src/main/java/com/clamp/acm/policy/PolicyStreamProcessor.java"
+
+check_file \
+  "$ROOT/policy-engine-service/src/main/java/com/clamp/acm/policy/PolicyTopology.java"
+
+check_file \
+  "$ROOT/policy-engine-service/src/main/resources/application.yml"
+
+check_file \
+  "$ROOT/automation-controller-service/src/main/java/com/clamp/acm/automation/AutomationApplication.java"
+
+check_file \
+  "$ROOT/automation-controller-service/src/main/java/com/clamp/acm/automation/AutomationConsumer.java"
+
+check_file \
+  "$ROOT/automation-controller-service/src/main/java/com/clamp/acm/automation/service/AutomationService.java"
+
+check_file \
+  "$ROOT/automation-controller-service/src/main/java/com/clamp/acm/automation/controller/AutomationControllerRest.java"
+
+check_file \
+  "$ROOT/automation-controller-service/src/main/resources/application.yml"
+
+# ------------------------------------------------------------
+# 5. DOCKER ET PIPELINE CI
+# ------------------------------------------------------------
+
+echo ""
+echo "[3/7] Verification des fichiers Docker et CI"
+
+check_directory "$ROOT/docker"
+check_directory "$ROOT/.github/workflows"
+
+# Les fichiers suivants sont attendus apres les sous-parties
+# precedentes. Leur absence est signalee, pas masquee.
+check_file "$ROOT/.dockerignore"
+
+check_file "$ROOT/monitoring-service/Dockerfile"
+check_file "$ROOT/policy-engine-service/Dockerfile"
+check_file "$ROOT/automation-controller-service/Dockerfile"
+
+check_file "$ROOT/.github/workflows/ci.yml"
+
+# ------------------------------------------------------------
+# 6. CHARTES HELM
+# ------------------------------------------------------------
+
+echo ""
+echo "[4/7] Verification des chartes Helm"
+
+for CHART in monitoring policy-engine automation-controller
+do
+    BASE="$ROOT/helm/$CHART"
+
+    check_file "$BASE/Chart.yaml"
+    check_file "$BASE/values.yaml"
+    check_file "$BASE/templates/_helpers.tpl"
+    check_file "$BASE/templates/serviceaccount.yaml"
+    check_file "$BASE/templates/deployment.yaml"
+    check_file "$BASE/templates/service.yaml"
+done
+
+check_file "$ROOT/helm/README.md"
+
+# ------------------------------------------------------------
+# 7. TOSCA, SCRIPTS ET DOCUMENTATION
+# ------------------------------------------------------------
+
+echo ""
+echo "[5/7] Verification des modeles TOSCA"
+
+check_file "$ROOT/tosca/README.md"
+check_file "$ROOT/tosca/policy-types/clamp-acm-policy-types.yaml"
+check_file "$ROOT/tosca/node-types/clamp-acm-node-types.yaml"
+check_file "$ROOT/tosca/compositions/clamp-acm-closed-loop.yaml"
+
+echo ""
+echo "[6/7] Verification des scripts et de la documentation"
+
+check_file "$ROOT/README.md"
+check_directory "$ROOT/scripts"
+check_directory "$ROOT/xtesting"
+check_directory "$ROOT/kafka-config"
+
+# ------------------------------------------------------------
+# 8. VERIFICATION DES GARDE-FOUS
+# ------------------------------------------------------------
+
+echo ""
+echo "[7/7] Verification des parametres de securite"
+
+check_contains \
+  "$ROOT/automation-controller-service/src/main/resources/application.yml" \
+  'ACM_AUTOMATION_EXECUTION_ENABLED:false' \
+  "Execution reelle desactivee par defaut"
+
+check_contains \
+  "$ROOT/automation-controller-service/src/main/java/com/clamp/acm/automation/service/AutomationService.java" \
+  'ALLOWED_ACTIONS' \
+  "Liste blanche d'actions presente"
+
+check_contains \
+  "$ROOT/tosca/compositions/clamp-acm-closed-loop.yaml" \
+  'execution_enabled: false' \
+  "Execution desactivee dans le modele TOSCA"
+
+# ------------------------------------------------------------
+# 9. RESULTAT FINAL
+# ------------------------------------------------------------
+
+{
+    echo ""
+    echo "============================================="
+    echo "RESUME"
+    echo "============================================="
+    echo "Controles executes : $CHECKS"
+    echo "Erreurs detectees  : $ERRORS"
+    echo ""
+    echo "Limites : aucune compilation ni validation"
+    echo "d'execution n'a ete realisee."
+} >> "$REPORT"
+
+echo ""
+echo "=========================================="
+echo "Resume de validation"
+echo "=========================================="
+echo "Controles executes : $CHECKS"
+echo "Erreurs detectees  : $ERRORS"
+echo "Rapport : $REPORT"
+
+if [ "$ERRORS" -ne 0 ]; then
+    echo ""
+    echo "VALIDATION INCOMPLETE."
+    echo "Certains fichiers attendus sont absents ou vides."
+    echo "Consulte le rapport pour identifier les elements."
+    exit 1
+fi
+
+echo ""
+echo "VALIDATION STATIQUE : OK"
+echo "Cela ne constitue pas une validation de compilation."
+echo "Aucune dependance installee."
+echo "Aucun service demarre."
+exit 0

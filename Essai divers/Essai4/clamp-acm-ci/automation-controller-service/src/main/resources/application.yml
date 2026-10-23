@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: automation-controller-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:acm-automation-controller}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.value.default.type: com.clamp.acm.events.PolicyDecisionEvent
+        spring.json.trusted.packages: com.clamp.acm.events
+
+server:
+  port: ${SERVER_PORT:8083}
+
+acm:
+  kafka:
+    decisions-topic: ${ACM_DECISIONS_TOPIC:acm.policy-decisions}
+
+  automation:
+    execution-enabled: ${ACM_AUTOMATION_EXECUTION_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: never

@@ -1,0 +1,79 @@
+CLAMP ACM CI - RAPPORT DE VALIDATION STATIQUE
+=============================================
+
+Ce rapport confirme uniquement les controles statiques
+effectivement realises par le script.
+
+Aucune compilation Maven, execution Docker, validation Helm
+ou validation ONAP ACM n'est effectuee automatiquement.
+OK      : clamp-acm-ci/pom.xml
+OK      : clamp-acm-ci/shared-events/pom.xml
+OK      : clamp-acm-ci/monitoring-service/pom.xml
+OK      : clamp-acm-ci/policy-engine-service/pom.xml
+OK      : clamp-acm-ci/automation-controller-service/pom.xml
+OK      : Module shared-events declare
+OK      : Module monitoring-service declare
+OK      : Module policy-engine-service declare
+OK      : Module automation-controller-service declare
+OK      : clamp-acm-ci/shared-events/src/main/java/com/clamp/acm/events/MetricsEvent.java
+OK      : clamp-acm-ci/shared-events/src/main/java/com/clamp/acm/events/PolicyDecisionEvent.java
+OK      : clamp-acm-ci/shared-events/src/main/resources/schema/metrics-event.schema.json
+OK      : clamp-acm-ci/shared-events/src/main/resources/schema/policy-decision-event.schema.json
+OK      : clamp-acm-ci/monitoring-service/src/main/java/com/clamp/acm/monitoring/MonitoringApplication.java
+OK      : clamp-acm-ci/monitoring-service/src/main/java/com/clamp/acm/monitoring/MonitoringProducer.java
+OK      : clamp-acm-ci/monitoring-service/src/main/resources/application.yml
+OK      : clamp-acm-ci/policy-engine-service/src/main/java/com/clamp/acm/policy/PolicyApplication.java
+OK      : clamp-acm-ci/policy-engine-service/src/main/java/com/clamp/acm/policy/PolicyStreamProcessor.java
+OK      : clamp-acm-ci/policy-engine-service/src/main/java/com/clamp/acm/policy/PolicyTopology.java
+OK      : clamp-acm-ci/policy-engine-service/src/main/resources/application.yml
+OK      : clamp-acm-ci/automation-controller-service/src/main/java/com/clamp/acm/automation/AutomationApplication.java
+OK      : clamp-acm-ci/automation-controller-service/src/main/java/com/clamp/acm/automation/AutomationConsumer.java
+OK      : clamp-acm-ci/automation-controller-service/src/main/java/com/clamp/acm/automation/service/AutomationService.java
+OK      : clamp-acm-ci/automation-controller-service/src/main/java/com/clamp/acm/automation/controller/AutomationControllerRest.java
+OK      : clamp-acm-ci/automation-controller-service/src/main/resources/application.yml
+OK      : repertoire clamp-acm-ci/docker
+OK      : repertoire clamp-acm-ci/.github/workflows
+OK      : clamp-acm-ci/.dockerignore
+ERREUR  : clamp-acm-ci/monitoring-service/Dockerfile
+ERREUR  : clamp-acm-ci/policy-engine-service/Dockerfile
+ERREUR  : clamp-acm-ci/automation-controller-service/Dockerfile
+OK      : clamp-acm-ci/.github/workflows/ci.yml
+OK      : clamp-acm-ci/helm/monitoring/Chart.yaml
+OK      : clamp-acm-ci/helm/monitoring/values.yaml
+OK      : clamp-acm-ci/helm/monitoring/templates/_helpers.tpl
+OK      : clamp-acm-ci/helm/monitoring/templates/serviceaccount.yaml
+OK      : clamp-acm-ci/helm/monitoring/templates/deployment.yaml
+OK      : clamp-acm-ci/helm/monitoring/templates/service.yaml
+OK      : clamp-acm-ci/helm/policy-engine/Chart.yaml
+OK      : clamp-acm-ci/helm/policy-engine/values.yaml
+OK      : clamp-acm-ci/helm/policy-engine/templates/_helpers.tpl
+OK      : clamp-acm-ci/helm/policy-engine/templates/serviceaccount.yaml
+OK      : clamp-acm-ci/helm/policy-engine/templates/deployment.yaml
+OK      : clamp-acm-ci/helm/policy-engine/templates/service.yaml
+OK      : clamp-acm-ci/helm/automation-controller/Chart.yaml
+OK      : clamp-acm-ci/helm/automation-controller/values.yaml
+OK      : clamp-acm-ci/helm/automation-controller/templates/_helpers.tpl
+OK      : clamp-acm-ci/helm/automation-controller/templates/serviceaccount.yaml
+OK      : clamp-acm-ci/helm/automation-controller/templates/deployment.yaml
+OK      : clamp-acm-ci/helm/automation-controller/templates/service.yaml
+OK      : clamp-acm-ci/helm/README.md
+OK      : clamp-acm-ci/tosca/README.md
+OK      : clamp-acm-ci/tosca/policy-types/clamp-acm-policy-types.yaml
+OK      : clamp-acm-ci/tosca/node-types/clamp-acm-node-types.yaml
+OK      : clamp-acm-ci/tosca/compositions/clamp-acm-closed-loop.yaml
+OK      : clamp-acm-ci/README.md
+OK      : repertoire clamp-acm-ci/scripts
+OK      : repertoire clamp-acm-ci/xtesting
+OK      : repertoire clamp-acm-ci/kafka-config
+OK      : Execution reelle desactivee par defaut
+OK      : Liste blanche d'actions presente
+OK      : Execution desactivee dans le modele TOSCA
+
+=============================================
+RESUME
+=============================================
+Controles executes : 62
+Erreurs detectees  : 3
+
+Limites : aucune compilation ni validation
+d'execution n'a ete realisee.

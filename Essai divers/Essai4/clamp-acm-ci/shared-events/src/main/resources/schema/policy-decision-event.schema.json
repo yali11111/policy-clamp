@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PolicyDecisionEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decisionId",
+    "sourceEventId",
+    "policyId",
+    "target",
+    "decision",
+    "timestamp"
+  ],
+  "properties": {
+    "decisionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceEventId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policyId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "NO_ACTION",
+        "SCALE_OUT",
+        "SCALE_IN",
+        "TRAFFIC_STEERING",
+        "CONFIGURATION_CHANGE",
+        "MANUAL_REVIEW"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}

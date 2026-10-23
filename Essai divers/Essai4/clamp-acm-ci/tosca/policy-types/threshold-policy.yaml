@@ -1,0 +1,33 @@
+# Type de politique de reference pour le projet.
+# Adapter la syntaxe et les imports au dialecte TOSCA
+# effectivement supporte par la version ONAP/ACM cible.
+
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  template_name: clamp-acm-threshold-policy
+  template_version: 1.0.0
+  template_author: CLAMP ACM CI
+
+description: >
+  Politique de supervision a seuils.
+  Le depassement d'un seuil demande une revue explicite ;
+  il ne declenche pas directement une action destructive.
+
+policy_types:
+  clamp.acm.policies.ThresholdPolicy:
+    derived_from: tosca.policies.Root
+    description: Evaluation de seuils de metriques.
+    properties:
+      cpu_threshold_pct:
+        type: float
+        required: true
+        default: 80.0
+      latency_threshold_ms:
+        type: float
+        required: true
+        default: 100.0
+      require_manual_review:
+        type: boolean
+        required: true
+        default: true
