@@ -1,0 +1,37 @@
+# Exemple de règles Prometheus.
+# Ce fichier doit être raccordé à la configuration Prometheus
+# effective avant d'être chargé.
+#
+# Les métriques applicatives personnalisées ne sont pas toutes
+# implémentées dans cette version : vérifier leur disponibilité
+# avant d'activer ces règles.
+
+groups:
+  - name: ran-platform
+    rules:
+      - alert: RanActionExecutionFailures
+        expr: increase(ran_action_execution_failures_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Échecs d'exécution d'actions RAN"
+          description: "Des échecs ont été observés pendant la période."
+
+      - alert: RanActionExpirations
+        expr: increase(ran_action_expired_total[10m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hausse des commandes RAN expirées"
+          description: "Vérifier les délais de traitement et le retard Kafka."
+
+      - alert: RanPredictionFailures
+        expr: increase(ran_prediction_failures_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Échecs du prédicteur RAN"
+          description: "Vérifier les données KPI et les erreurs applicatives."

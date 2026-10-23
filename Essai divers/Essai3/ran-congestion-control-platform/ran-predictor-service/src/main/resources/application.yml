@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: ran-predictor-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:ran-predictor-group}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+server:
+  port: ${SERVER_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ran:
+  kafka:
+    topics:
+      kpi: ${RAN_KPI_TOPIC:ran.kpi}
+      congestion: ${RAN_CONGESTION_TOPIC:ran.congestion}
+
+  predictor:
+    thresholds:
+      prb-percent: ${RAN_PREDICTOR_PRB_THRESHOLD:80.0}
+      latency-ms: ${RAN_PREDICTOR_LATENCY_THRESHOLD_MS:50.0}
+      packet-loss-percent: ${RAN_PREDICTOR_PACKET_LOSS_THRESHOLD:1.0}
+    horizon-seconds: ${RAN_PREDICTOR_HORIZON_SECONDS:30}
+
+logging:
+  level:
+    root: INFO
+    org.example.ran.predictor: INFO

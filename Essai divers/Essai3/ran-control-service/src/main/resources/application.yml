@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: ran-control-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:ran-control-group}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+server:
+  port: ${SERVER_PORT:8082}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ran:
+  kafka:
+    topics:
+      congestion: ${RAN_CONGESTION_TOPIC:ran.congestion}
+      action: ${RAN_ACTION_TOPIC:ran.action}
+
+  control:
+    simulation-mode: ${RAN_CONTROL_SIMULATION_MODE:true}
+    thresholds:
+      steering-prb: ${RAN_STEERING_PRB_THRESHOLD:75.0}
+      scale-out-prb: ${RAN_SCALE_OUT_PRB_THRESHOLD:90.0}
+      critical-prb: ${RAN_CRITICAL_PRB_THRESHOLD:97.0}
+    cooldown-seconds: ${RAN_CONTROL_COOLDOWN_SECONDS:30}
+    action-ttl-seconds: ${RAN_CONTROL_ACTION_TTL_SECONDS:60}
+
+logging:
+  level:
+    root: INFO
+    org.example.ran.control: INFO

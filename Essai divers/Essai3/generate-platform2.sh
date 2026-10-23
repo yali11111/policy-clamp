@@ -2365,14 +2365,11 @@ EOF
 
 echo "PARTIE 7B/8 — 2/3A générée : moteur de scaling."
 echo "Aucune compilation ni mise à l'échelle réelle exécutée."
-Partie 7B/8 — 2/3B : configuration, tests et documentation
-Cette deuxième moitié complète le module avec application.yml, le pom.xml, les tests unitaires et le README. Elle doit être exécutée après la partie 2/3A, depuis le même répertoire parent.
 
-
-bash
-
-#!/usr/bin/env bash
-set -euo pipefail
+# ============================================================
+# PARTIE 7B/8 — 2/3B
+# Configuration, tests et documentation du moteur de scaling
+# ============================================================
 
 # ============================================================
 # RAN Congestion Control Platform

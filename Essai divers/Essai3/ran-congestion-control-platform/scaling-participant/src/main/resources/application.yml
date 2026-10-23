@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: scaling-participant
+
+ran:
+  scaling:
+    simulation-mode: ${RAN_SCALING_SIMULATION_MODE:true}
+    minimum-replicas: ${RAN_SCALING_MINIMUM_REPLICAS:1}
+    maximum-replicas: ${RAN_SCALING_MAXIMUM_REPLICAS:10}
+    maximum-step: ${RAN_SCALING_MAXIMUM_STEP:2}

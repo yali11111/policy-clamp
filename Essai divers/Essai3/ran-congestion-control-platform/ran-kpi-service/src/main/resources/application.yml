@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: ran-kpi-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ran:
+  kafka:
+    topics:
+      kpi: ${RAN_KPI_TOPIC:ran.kpi}
+
+  simulator:
+    enabled: ${RAN_SIMULATOR_ENABLED:true}
+    node-id: ${RAN_NODE_ID:gnb-001}
+    cells: ${RAN_SIMULATOR_CELLS:3}
+    profile: ${RAN_SIMULATOR_PROFILE:random}
+    interval-ms: ${RAN_SIMULATOR_INTERVAL_MS:2000}
+
+logging:
+  level:
+    root: INFO
+    org.example.ran: INFO

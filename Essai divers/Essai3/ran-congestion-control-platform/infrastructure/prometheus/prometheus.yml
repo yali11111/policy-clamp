@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+  external_labels:
+    platform: ran-congestion-control
+    environment: local
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+
+  - job_name: ran-kpi-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - ran-kpi-service:8080
+
+  - job_name: ran-predictor-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - ran-predictor-service:8081
+
+  - job_name: ran-control-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - ran-control-service:8082
+
+  - job_name: ran-clamp-participant-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - ran-clamp-participant-service:8083
+
+  - job_name: ran-observability-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - ran-observability-service:8084

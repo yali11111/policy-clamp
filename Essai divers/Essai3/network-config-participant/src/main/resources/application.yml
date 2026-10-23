@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: network-config-participant
+
+server:
+  port: ${SERVER_PORT:8086}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ran:
+  network-config:
+    simulation-mode: ${RAN_NETWORK_CONFIG_SIMULATION_MODE:true}
+    max-value-length: ${RAN_NETWORK_CONFIG_MAX_VALUE_LENGTH:256}
+
+logging:
+  level:
+    root: INFO
+    org.example.ran.networkconfig: INFO

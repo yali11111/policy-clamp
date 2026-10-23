@@ -1,0 +1,32 @@
+# Politique de référence pour les commandes RAN.
+# Ce fichier est documentaire : les services ne le chargent
+# pas automatiquement dans cette version.
+
+security:
+  simulation-mode: true
+
+  action-validation:
+    require-action-id: true
+    require-correlation-id: true
+    require-expiration: true
+    reject-expired-actions: true
+    reject-terminal-actions: true
+    reject-unknown-action-types: true
+    reject-unknown-targets: true
+
+  execution:
+    require-authorized-target: true
+    require-parameter-validation: true
+    require-operational-limits: true
+    require-audit-record: true
+    require-explicit-production-adapter: true
+
+  replay-protection:
+    enabled: true
+    storage: durable
+    unique-key: actionId
+
+  kafka:
+    require-authentication-in-production: true
+    require-topic-acls-in-production: true
+    require-encryption-in-production: true

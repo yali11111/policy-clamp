@@ -1,0 +1,12 @@
+# Modules attendus de la plateforme RAN
+# Vérifier leur présence avant toute compilation.
+
+ran-common
+ran-kpi-service
+ran-predictor-service
+ran-control-service
+ran-action-service
+ran-clamp-participant-service
+traffic-steering-participant
+scaling-participant
+network-config-participant
