@@ -1977,3 +1977,497 @@ done
 echo "[4/4] automation-controller-service cree."
 echo "Partie 2/4 terminee : les trois microservices sont definis."
 echo "Aucune installation, compilation ou execution effectuee."
+
+
+# ============================================================
+# CLAMP-ACM-CI
+# PARTIE 3/4 : KAFKA, TOSCA, COMPOSITIONS ET VALIDATION
+#
+# Sous-partie 1/4 : configuration des topics Kafka
+# Sous-partie 2/4 : types de politiques et de noeuds TOSCA
+# Sous-partie 3/4 : compositions d'automatisation
+# Sous-partie 4/4 : scripts de verification et smoke tests
+#
+# Ce generateur ne lance aucune installation, compilation,
+# connexion Kafka, execution Docker ou application Spring Boot.
+# ============================================================
+
+set -eu
+
+ROOT="clamp-acm-ci"
+
+echo "=========================================="
+echo "CLAMP ACM CI - Partie 3/4"
+echo "Generation Kafka et TOSCA"
+echo "=========================================="
+
+if [ ! -f "$ROOT/pom.xml" ]; then
+    echo "ERREUR : projet $ROOT introuvable."
+    echo "Execute d'abord les scripts des parties precedentes."
+    exit 1
+fi
+
+mkdir -p \
+  "$ROOT/kafka-config" \
+  "$ROOT/tosca/policy-types" \
+  "$ROOT/tosca/node-types" \
+  "$ROOT/tosca/compositions" \
+  "$ROOT/scripts" \
+  "$ROOT/xtesting/smoke"
+
+# ============================================================
+# SOUS-PARTIE 1/4 : CONFIGURATION KAFKA
+# ============================================================
+
+echo "[1/4] Generation de la configuration Kafka"
+
+cat > "$ROOT/kafka-config/topics.properties" <<'EOF'
+# Configuration declarative des topics Kafka.
+# Ces proprietes documentent les parametres souhaites.
+# Elles ne creent aucun topic automatiquement.
+
+acm.metrics.partitions=3
+acm.metrics.replication-factor=1
+acm.metrics.retention-ms=604800000
+acm.metrics.cleanup-policy=delete
+
+acm.policy-decisions.partitions=3
+acm.policy-decisions.replication-factor=1
+acm.policy-decisions.retention-ms=604800000
+acm.policy-decisions.cleanup-policy=delete
+
+acm.automation-results.partitions=3
+acm.automation-results.replication-factor=1
+acm.automation-results.retention-ms=604800000
+acm.automation-results.cleanup-policy=delete
+EOF
+
+cat > "$ROOT/kafka-config/README.md" <<'EOF'
+# Configuration Kafka
+
+## Topics
+
+| Topic | Producteur | Consommateur |
+|---|---|---|
+| acm.metrics | monitoring-service | policy-engine-service |
+| acm.policy-decisions | policy-engine-service | automation-controller-service |
+| acm.automation-results | automation-controller-service | observabilite |
+
+## Parametres proposes
+
+- Trois partitions par topic.
+- Facteur de replication 1 pour un environnement local.
+- Conservation des messages pendant sept jours.
+- Nettoyage par suppression des anciens messages.
+
+Le facteur de replication 1 n'est pas recommande pour une
+installation de production hautement disponible.
+
+## Securite
+
+En production, configurer TLS, les ACL, l'authentification
+et les autorisations de lecture et d'ecriture par service.
+
+Les topics doivent etre crees par un administrateur ou par
+un mecanisme de deploiement controle.
+
+Le fichier topics.properties est une documentation declarative ;
+il n'est pas directement interprete par Kafka.
+EOF
+
+# ============================================================
+# SOUS-PARTIE 2/4 : TYPES DE POLITIQUES ET NOEUDS TOSCA
+# ============================================================
+
+echo "[2/4] Generation des types TOSCA"
+
+cat > "$ROOT/tosca/policy-types/threshold-policy.yaml" <<'EOF'
+# Type de politique de reference pour le projet.
+# Adapter la syntaxe et les imports au dialecte TOSCA
+# effectivement supporte par la version ONAP/ACM cible.
+
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  template_name: clamp-acm-threshold-policy
+  template_version: 1.0.0
+  template_author: CLAMP ACM CI
+
+description: >
+  Politique de supervision a seuils.
+  Le depassement d'un seuil demande une revue explicite ;
+  il ne declenche pas directement une action destructive.
+
+policy_types:
+  clamp.acm.policies.ThresholdPolicy:
+    derived_from: tosca.policies.Root
+    description: Evaluation de seuils de metriques.
+    properties:
+      cpu_threshold_pct:
+        type: float
+        required: true
+        default: 80.0
+      latency_threshold_ms:
+        type: float
+        required: true
+        default: 100.0
+      require_manual_review:
+        type: boolean
+        required: true
+        default: true
+EOF
+
+cat > "$ROOT/tosca/node-types/monitoring-node.yaml" <<'EOF'
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  template_name: clamp-acm-monitoring-node
+  template_version: 1.0.0
+  template_author: CLAMP ACM CI
+
+description: >
+  Representation logique du producteur de metriques.
+  Ce type descriptif ne configure pas lui-meme une source RAN.
+
+node_types:
+  clamp.acm.nodes.Monitoring:
+    derived_from: tosca.nodes.Root
+    properties:
+      service_name:
+        type: string
+        required: true
+        default: monitoring-service
+      metrics_topic:
+        type: string
+        required: true
+        default: acm.metrics
+      collection_interval_ms:
+        type: integer
+        required: true
+        default: 10000
+EOF
+
+cat > "$ROOT/tosca/node-types/policy-engine-node.yaml" <<'EOF'
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  template_name: clamp-acm-policy-engine-node
+  template_version: 1.0.0
+  template_author: CLAMP ACM CI
+
+description: >
+  Representation logique du moteur de politiques Kafka Streams.
+
+node_types:
+  clamp.acm.nodes.PolicyEngine:
+    derived_from: tosca.nodes.Root
+    properties:
+      service_name:
+        type: string
+        required: true
+        default: policy-engine-service
+      input_topic:
+        type: string
+        required: true
+        default: acm.metrics
+      output_topic:
+        type: string
+        required: true
+        default: acm.policy-decisions
+      application_id:
+        type: string
+        required: true
+        default: acm-policy-engine
+EOF
+
+cat > "$ROOT/tosca/node-types/automation-controller-node.yaml" <<'EOF'
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  template_name: clamp-acm-automation-controller-node
+  template_version: 1.0.0
+  template_author: CLAMP ACM CI
+
+description: >
+  Representation logique du controleur d'automatisation.
+  Toute execution reelle necessite un adaptateur et des controles.
+
+node_types:
+  clamp.acm.nodes.AutomationController:
+    derived_from: tosca.nodes.Root
+    properties:
+      service_name:
+        type: string
+        required: true
+        default: automation-controller-service
+      input_topic:
+        type: string
+        required: true
+        default: acm.policy-decisions
+      execution_enabled:
+        type: boolean
+        required: true
+        default: false
+EOF
+
+# ============================================================
+# SOUS-PARTIE 3/4 : COMPOSITION D'AUTOMATISATION
+# ============================================================
+
+echo "[3/4] Generation de la composition TOSCA"
+
+cat > "$ROOT/tosca/compositions/closed-loop-demo.yaml" <<'EOF'
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  template_name: clamp-acm-closed-loop-demo
+  template_version: 1.0.0
+  template_author: CLAMP ACM CI
+
+description: >
+  Composition logique de reference reliant la supervision,
+  l'evaluation des politiques et le controleur d'automatisation.
+  Cette composition est illustrative et doit etre adaptee
+  au modele de composition de la version ONAP/ACM cible.
+
+imports:
+  - ../node-types/monitoring-node.yaml
+  - ../node-types/policy-engine-node.yaml
+  - ../node-types/automation-controller-node.yaml
+  - ../policy-types/threshold-policy.yaml
+
+topology_template:
+  inputs:
+    target_name:
+      type: string
+      description: Identifiant logique de la cible observee
+      default: demo-cell-001
+
+    cpu_threshold_pct:
+      type: float
+      description: Seuil CPU en pourcentage
+      default: 80.0
+
+    latency_threshold_ms:
+      type: float
+      description: Seuil de latence en millisecondes
+      default: 100.0
+
+  node_templates:
+    monitoring:
+      type: clamp.acm.nodes.Monitoring
+      properties:
+        service_name: monitoring-service
+        metrics_topic: acm.metrics
+        collection_interval_ms: 10000
+
+    policy_engine:
+      type: clamp.acm.nodes.PolicyEngine
+      properties:
+        service_name: policy-engine-service
+        input_topic: acm.metrics
+        output_topic: acm.policy-decisions
+        application_id: acm-policy-engine
+
+    automation_controller:
+      type: clamp.acm.nodes.AutomationController
+      properties:
+        service_name: automation-controller-service
+        input_topic: acm.policy-decisions
+        execution_enabled: false
+
+  policies:
+    threshold_policy:
+      type: clamp.acm.policies.ThresholdPolicy
+      properties:
+        cpu_threshold_pct: 80.0
+        latency_threshold_ms: 100.0
+        require_manual_review: true
+EOF
+
+cat > "$ROOT/tosca/README.md" <<'EOF'
+# Modeles TOSCA
+
+## Organisation
+
+- policy-types/ : definitions des politiques de reference.
+- node-types/ : types logiques des trois services.
+- compositions/ : exemple de composition de boucle fermee.
+
+## Limites
+
+Ces fichiers constituent un modele de reference generique
+en syntaxe TOSCA Simple YAML 1.3.
+
+Ils ne garantissent pas leur acceptation directe par ONAP CLAMP
+ou par le moteur ACM installe.
+
+Selon la version cible, il faudra notamment adapter :
+
+- les imports et les types de politiques ;
+- les types de noeuds supportes ;
+- la structure des compositions ACM ;
+- les definitions de participants et de control loops ;
+- les proprietes et les contraintes du modele cible.
+
+La composition ne deploie aucun service et ne declenche aucune
+action sur une infrastructure reelle.
+EOF
+
+# ============================================================
+# SOUS-PARTIE 4/4 : VALIDATION STATIQUE ET SMOKE TESTS
+# ============================================================
+
+echo "[4/4] Generation des scripts de verification"
+
+cat > "$ROOT/scripts/validate-generated-files.sh" <<'EOF'
+#!/bin/sh
+
+set -eu
+
+ROOT="${1:-clamp-acm-ci}"
+
+echo "=========================================="
+echo "CLAMP ACM CI - Validation statique"
+echo "=========================================="
+
+FILES="
+pom.xml
+shared-events/pom.xml
+monitoring-service/pom.xml
+policy-engine-service/pom.xml
+automation-controller-service/pom.xml
+kafka-config/topics.properties
+kafka-config/README.md
+tosca/policy-types/threshold-policy.yaml
+tosca/node-types/monitoring-node.yaml
+tosca/node-types/policy-engine-node.yaml
+tosca/node-types/automation-controller-node.yaml
+tosca/compositions/closed-loop-demo.yaml
+tosca/README.md
+"
+
+for RELATIVE_FILE in $FILES; do
+    FILE="$ROOT/$RELATIVE_FILE"
+
+    if [ -s "$FILE" ]; then
+        echo "OK : $RELATIVE_FILE"
+    else
+        echo "ERREUR : fichier absent ou vide : $RELATIVE_FILE"
+        exit 1
+    fi
+done
+
+echo ""
+echo "Validation statique terminee."
+echo "Aucune compilation ou connexion a un service effectuee."
+EOF
+
+cat > "$ROOT/xtesting/smoke/README.md" <<'EOF'
+# Tests de fumee
+
+Les tests de fumee servent a verifier les points d'entree
+HTTP et la disponibilite des services une fois ceux-ci deployes.
+
+Prerequis pour les tests HTTP :
+- services demarres ;
+- ports accessibles ;
+- dependances et configuration correctement installees.
+
+Les controles HTTP ne remplacent ni les tests unitaires,
+ni les tests d'integration Kafka, ni la validation ONAP ACM.
+EOF
+
+cat > "$ROOT/xtesting/smoke/smoke-test.sh" <<'EOF'
+#!/bin/sh
+
+set -eu
+
+BASE_URL="${AUTOMATION_URL:-http://localhost:8083}"
+HEALTH_URL="${HEALTH_URL:-http://localhost:8083/actuator/health}"
+
+echo "CLAMP ACM CI - Smoke test HTTP"
+echo "URL de sante : $HEALTH_URL"
+
+if ! command -v curl >/dev/null 2>&1; then
+    echo "ERREUR : curl doit etre disponible pour lancer ce test."
+    exit 1
+fi
+
+echo ""
+echo "Verification de l'endpoint de sante"
+
+HTTP_CODE=$(
+    curl --silent --show-error \
+         --output /dev/null \
+         --write-out '%{http_code}' \
+         "$HEALTH_URL"
+) || {
+    echo "ERREUR : endpoint de sante inaccessible."
+    exit 1
+}
+
+if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERREUR : statut HTTP inattendu : $HTTP_CODE"
+    exit 1
+fi
+
+echo "OK : endpoint de sante HTTP 200"
+
+echo ""
+echo "Verification de l'API de consultation"
+
+HTTP_CODE=$(
+    curl --silent --show-error \
+         --output /dev/null \
+         --write-out '%{http_code}' \
+         "$BASE_URL/api/automation/requests"
+) || {
+    echo "ERREUR : API d'automatisation inaccessible."
+    exit 1
+}
+
+if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERREUR : statut HTTP inattendu : $HTTP_CODE"
+    exit 1
+fi
+
+echo "OK : API de consultation HTTP 200"
+echo "Smoke tests termines."
+EOF
+
+# ============================================================
+# CONTROLE DES FICHIERS GENERES
+# ============================================================
+
+for FILE in \
+  "$ROOT/kafka-config/topics.properties" \
+  "$ROOT/kafka-config/README.md" \
+  "$ROOT/tosca/policy-types/threshold-policy.yaml" \
+  "$ROOT/tosca/node-types/monitoring-node.yaml" \
+  "$ROOT/tosca/node-types/policy-engine-node.yaml" \
+  "$ROOT/tosca/node-types/automation-controller-node.yaml" \
+  "$ROOT/tosca/compositions/closed-loop-demo.yaml" \
+  "$ROOT/tosca/README.md" \
+  "$ROOT/scripts/validate-generated-files.sh" \
+  "$ROOT/xtesting/smoke/README.md" \
+  "$ROOT/xtesting/smoke/smoke-test.sh"
+do
+    if [ ! -s "$FILE" ]; then
+        echo "ERREUR : fichier absent ou vide : $FILE"
+        exit 1
+    fi
+
+    echo "OK : $FILE"
+done
+
+echo ""
+echo "=========================================="
+echo "Partie 3/4 terminee."
+echo "Kafka : configuration declarative generee."
+echo "TOSCA : types et composition generes."
+echo "Tests : scripts generes, non executes."
+echo "Aucune dependance installee."
+echo "Aucun service demarre."
+echo "=========================================="
+
